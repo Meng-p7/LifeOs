@@ -7,35 +7,100 @@
 "use strict";
 
 const Sync = {
-  status: "local",          // local | offline | syncing | synced | error | pending
-  adapter: null,            // 未来注入 SupabaseAdapter
+  status: "local",          // local | loggedout | offline | syncing | synced | error | pending
+  adapter: null,            // SupabaseAdapter（配置并登录后注入）
   lastSyncAt: null,
   lastError: "",
   _dirty: false,
 
   STATUS_TEXT: {
-    local:   { icon: "●", text: "本地模式", tip: "数据仅保存在本机浏览器。配置云同步后可在多设备间同步（见 docs/SUPABASE_SETUP.md）" },
-    offline: { icon: "○", text: "离线", tip: "网络不可用，更改已保存到本地，恢复联网后自动重试" },
-    syncing: { icon: "◌", text: "同步中", tip: "正在与云端同步…" },
-    synced:  { icon: "✓", text: "已同步", tip: "所有更改已同步到云端" },
-    error:   { icon: "!", text: "同步失败", tip: "同步出错，可点击重试；本地数据不受影响" },
-    pending: { icon: "↑", text: "待同步", tip: "有尚未同步的本地更改" }
+    local:     { icon: "●", text: "本地模式", tip: "数据仅保存在本机浏览器。在「设置」中配置 Supabase 后可多设备同步（docs/SUPABASE_SETUP.md）" },
+    loggedout: { icon: "○", text: "未登录", tip: "云同步已配置，登录后自动同步" },
+    offline:   { icon: "○", text: "离线", tip: "网络不可用，更改已保存到本地，恢复联网后自动重试" },
+    syncing:   { icon: "◌", text: "同步中", tip: "正在与云端同步…" },
+    synced:    { icon: "✓", text: "已同步", tip: "所有更改已同步到云端" },
+    error:     { icon: "!", text: "同步失败", tip: "同步出错，可点击重试；本地数据不受影响" },
+    pending:   { icon: "↑", text: "待同步", tip: "有尚未同步的本地更改" }
   },
 
   init() {
-    // 无 adapter → 本地模式。云端接入时：
-    //   Sync.adapter = new SupabaseAdapter({ url, anonKey });
-    //   if (Sync.adapter) await Sync.loginIfSession();
-    if (!this.adapter) { this.setStatus("local"); return; }
+    // URL 参数一次性注入配置（?sb_url=...&sb_key=...），注入后立即从地址栏清除
+    SupabaseConfig.applyFromUrl();
+    const cfg = SupabaseConfig.get();
+    if (cfg && cfg.url && cfg.key) {
+      this.adapter = new SupabaseAdapter(cfg);
+      this.restoreSession();
+    } else {
+      this.setStatus("local");
+    }
+    if (!this.adapter) return;
     window.addEventListener("online", () => this.flush());
     window.addEventListener("offline", () => { if (this.adapter) this.setStatus("offline"); });
-    if (navigator.onLine === false && this.adapter) this.setStatus("offline");
+    if (navigator.onLine === false) this.setStatus("offline");
+  },
+
+  /* 页面加载时尝试恢复会话并同步 */
+  async restoreSession() {
+    this.setStatus("syncing");
+    try {
+      const user = await this.adapter.currentUser();
+      if (!user) { this.setStatus("loggedout"); return; }
+      await this.adapter.syncAfterLogin();
+      this.setStatus("synced");
+    } catch (e) {
+      console.warn("[sync] restore failed:", e && e.message);
+      this.setStatus("error", this.friendlyError(e));
+    }
+  },
+
+  /* 登录（设置页调用） */
+  async signIn(email, password) {
+    if (!this.adapter) throw new Error("尚未配置云同步");
+    this.setStatus("syncing");
+    try {
+      await this.adapter.signIn(email, password);
+      await this.adapter.syncAfterLogin();
+      this.setStatus("synced");
+      return true;
+    } catch (e) {
+      this.setStatus("error", this.friendlyError(e));
+      throw e;
+    }
+  },
+
+  /* 注册（设置页调用；开了邮箱确认时需先收邮件点确认再登录） */
+  async signUp(email, password) {
+    if (!this.adapter) throw new Error("尚未配置云同步");
+    const data = await this.adapter.signUp(email, password);
+    if (data && data.access_token) {
+      await this.adapter.syncAfterLogin();
+      this.setStatus("synced");
+    }
+    return data;
+  },
+
+  async signOut() {
+    if (!this.adapter) return;
+    await this.adapter.signOut();
+    this.setStatus("loggedout");
+    this._dirty = false;
   },
 
   setStatus(s, err) {
     this.status = s;
     if (err) this.lastError = err;
     this.renderChip();
+  },
+
+  /* 云端错误的人话提示 */
+  friendlyError(e) {
+    if (e && (e.code === "PGRST205" || /Could not find the table/.test(e.message || ""))) {
+      return "云端数据表未创建：请在 Supabase 控制台 SQL Editor 执行 docs/SUPABASE_SETUP.md 第 3 节的迁移 SQL";
+    }
+    if (e && /Failed to fetch|NetworkError|Load failed/.test(e.message || "")) {
+      return "网络连接失败，请检查网络后重试";
+    }
+    return (e && e.message) || "未知错误";
   },
 
   /* 本地发生更改：有 adapter 时标记待同步并触发 flush；无 adapter 时仅记录 */
@@ -63,7 +128,7 @@ const Sync = {
       this.setStatus("synced");
     } catch (e) {
       console.warn("[sync] push failed:", e && e.message);
-      this.setStatus("error", e && e.message);
+      this.setStatus("error", this.friendlyError(e));
     }
   },
 
@@ -84,12 +149,12 @@ const Sync = {
   },
 
   async retry() {
-    if (!this.adapter) {
-      UI.toast("尚未配置云同步：请查看 docs/SUPABASE_SETUP.md 完成部署");
-      return;
-    }
+    if (!this.adapter) { UI.toast("尚未配置云同步：在「设置」中填写 Supabase 地址和密钥"); return; }
+    let user = null;
+    try { user = await this.adapter.currentUser(); } catch (e) { user = null; }
+    if (!user) { this.setStatus("loggedout"); UI.toast("登录状态已失效，请在设置中重新登录"); return; }
     await this.flush();
-    if (this.status === "error") UI.toast("同步失败：" + (this.lastError || "未知错误") + "，可再次点击重试");
+    if (this.status === "error") UI.toast("同步失败：" + this.friendlyError({ message: this.lastError }) + "，可再次点击重试");
   },
 
   renderChip() {

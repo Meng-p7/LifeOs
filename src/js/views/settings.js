@@ -11,6 +11,7 @@ const SettingsView = {
       this.examCard(),
       this.trainingCard(),
       this.goalsCard(),
+      this.cloudCard(),
       this.appearanceCard(),
       this.dataCard()
     );
@@ -136,6 +137,117 @@ const SettingsView = {
         UI.field("目标体重（kg）", wg, "增重/减重目标，用于对照趋势"),
         UI.field("每日热量目标（kcal）", dg, "0 表示不设置"))
     );
+  },
+
+  /* ---- 云同步 ---- */
+  cloudCard() {
+    const cfg = SupabaseConfig.get();
+    const session = SupabaseConfig.getSession();
+    const configured = !!(cfg && cfg.url && cfg.key);
+    const loggedIn = configured && !!session;
+
+    const card = UI.h("div", { class: "card", id: "cloudCard" },
+      UI.h("div", { class: "card-title" },
+        UI.h("span", { class: "bar", style: "background:var(--violet)" }), "云同步",
+        UI.h("span", { class: "extra", id: "cloudStatus" }, configured ? (loggedIn ? "已配置 · 已登录" : "已配置 · 未登录") : "未配置"))
+    );
+
+    // 配置区
+    const urlInp = UI.input({ value: cfg ? cfg.url : "", placeholder: "https://xxxx.supabase.co" });
+    const keyInp = UI.input({ type: "password", value: cfg ? cfg.key : "", placeholder: "sb_publishable_..." });
+    const showBtn = UI.h("button", { class: "btn small", type: "button", title: "显示/隐藏密钥" }, "显示");
+    let shown = false;
+    showBtn.addEventListener("click", () => { shown = !shown; keyInp.type = shown ? "text" : "password"; showBtn.textContent = shown ? "隐藏" : "显示"; });
+    const saveCfg = async () => {
+      const url = urlInp.value.trim().replace(/\/+$/, ""), key = keyInp.value.trim();
+      if (!url || !key) { UI.toast("请填写完整的地址和密钥"); return; }
+      if (!/^https:\/\/[^\s]+\.supabase\.co$/.test(url) && !/^https:\/\/[^\s]+\.supabase\.in$/.test(url)) {
+        UI.toast("地址格式不正确，应为 https://<项目>.supabase.co"); return;
+      }
+      SupabaseConfig.save({ url, key });
+      Sync.adapter = new SupabaseAdapter({ url, key });
+      Sync.restoreSession();
+      UI.toast("配置已保存，正在恢复会话…");
+      setTimeout(() => SettingsView.render(), 1500);
+    };
+    card.append(
+      UI.h("div", { class: "field" }, UI.h("label", { class: "field-label" }, "Supabase 项目地址"), urlInp),
+      UI.h("div", { class: "field" }, UI.h("label", { class: "field-label" }, "Publishable Key（前端公开客户端密钥）"),
+        UI.h("div", { class: "row" }, UI.h("div", { class: "grow" }, keyInp), showBtn),
+        UI.h("div", { class: "field-hint" }, "在 Supabase 控制台 Settings → API 获取。该密钥设计上前端可公开，数据隔离由数据库行级安全（RLS）保证；请勿使用 service_role key。")),
+      UI.h("div", { class: "row", style: "margin-bottom:6px" },
+        UI.h("button", { class: "btn primary", type: "button", onclick: saveCfg }, "保存并连接"),
+        configured ? UI.h("button", { class: "btn danger", type: "button", onclick: async () => {
+          const ok = await UI.confirmDanger("清除云同步配置", "将退出登录并清除本机保存的 Supabase 配置。云端数据不会被删除。确定吗？", "清除配置");
+          if (!ok) return;
+          if (Sync.adapter) await Sync.adapter.signOut().catch(() => {});
+          SupabaseConfig.clear();
+          SupabaseConfig.saveSession(null);
+          Sync.adapter = null;
+          Sync.setStatus("local");
+          SettingsView.render();
+          UI.toast("配置已清除");
+        } }, "清除配置") : null)
+    );
+
+    if (!configured) {
+      card.append(UI.h("div", { class: "field-hint" },
+        "配置后可在电脑与手机之间同步任务、学习、训练、体重、日程和复盘。首次登录时，本地已有数据会自动合并上传，不会被空云端覆盖。详细部署步骤见仓库 docs/SUPABASE_SETUP.md。"));
+      return card;
+    }
+
+    // 账号区
+    if (!loggedIn) {
+      const email = UI.input({ type: "email", placeholder: "你的邮箱" });
+      const pwd = UI.input({ type: "password", placeholder: "密码（至少 6 位）" });
+      const doLogin = async () => {
+        if (!email.value.trim() || !pwd.value) { UI.toast("填写邮箱和密码"); return; }
+        try { await Sync.signIn(email.value.trim(), pwd.value); UI.toast("登录成功，数据已同步"); SettingsView.render(); }
+        catch (e) { UI.toast("登录失败：" + Sync.friendlyError(e)); }
+      };
+      const doSignUp = async () => {
+        if (!email.value.trim() || !pwd.value) { UI.toast("填写邮箱和密码"); return; }
+        if (pwd.value.length < 6) { UI.toast("密码至少 6 位"); return; }
+        try {
+          const d = await Sync.signUp(email.value.trim(), pwd.value);
+          if (d && d.access_token) { UI.toast("注册成功，数据已同步"); SettingsView.render(); }
+          else UI.toast("注册成功：请先到邮箱点确认邮件，再回来登录", 3500);
+        } catch (e) { UI.toast("注册失败：" + Sync.friendlyError(e)); }
+      };
+      card.append(
+        UI.h("div", { class: "dlg-sep" }),
+        UI.h("div", { class: "field" }, UI.h("label", { class: "field-label" }, "邮箱"), email),
+        UI.h("div", { class: "field" }, UI.h("label", { class: "field-label" }, "密码"), pwd),
+        UI.h("div", { class: "row" },
+          UI.h("button", { class: "btn primary", type: "button", onclick: doLogin }, "登录"),
+          UI.h("button", { class: "btn", type: "button", onclick: doSignUp }, "注册新账号")),
+        UI.h("div", { class: "field-hint" }, "注册需要邮箱确认（Supabase 默认开启）；确认后返回本页登录。账号数据仅保存在你自己的 Supabase 项目中。")
+      );
+    } else {
+      const emailTxt = (session.email || SupabaseConfig.getSession() && SupabaseConfig.getSession().email || "已登录");
+      card.append(
+        UI.h("div", { class: "dlg-sep" }),
+        UI.h("div", { class: "row", style: "margin-bottom:10px" },
+          UI.h("span", { style: "font-size:13.5px;font-weight:700" }, `账号：${emailTxt}`)),
+        UI.h("div", { class: "row" },
+          UI.h("button", { class: "btn primary", type: "button", onclick: async () => {
+            try {
+              const remote = await Sync.adapter.pull();
+              Store.state = mergeStates(Store.state, remote);
+              Store.save();
+              await Sync.adapter.push(Store.state);
+              Sync.setStatus("synced");
+              App.renderAll();
+              UI.toast("已同步");
+            } catch (e) { Sync.setStatus("error", e.message); UI.toast("同步失败：" + Sync.friendlyError(e)); }
+          } }, "立即同步"),
+          UI.h("button", { class: "btn", type: "button", onclick: async () => {
+            await Sync.signOut(); SettingsView.render(); UI.toast("已退出登录");
+          } }, "退出登录")),
+        UI.h("div", { class: "field-hint" }, "本地改动会在停止操作约 1 秒后自动上传；顶栏芯片显示实时同步状态。")
+      );
+    }
+    return card;
   },
 
   editWeightGoal() { App.switchView("settings"); setTimeout(() => document.getElementById("view-settings").scrollIntoView({ behavior: "smooth" }), 60); },

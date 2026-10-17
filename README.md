@@ -53,7 +53,7 @@
 
 **本地版**：下载 `index.html` 双击打开，无需安装、无需联网。
 
-**多设备同步（待配置）**：当前数据保存在浏览器本地。完成 Supabase 部署后可实现电脑与手机同步，步骤见 [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md)。
+**多设备同步**：数据默认保存在浏览器本地。已内置 Supabase 云同步（代码就绪）：按 `docs/SUPABASE_SETUP.md` 第 3 节建表，然后在「设置 → 云同步」填写项目地址和 Publishable Key 即可实现电脑与手机同步；首次登录自动合并本地与云端数据，不会被空云端覆盖。
 
 ## 数据说明
 

@@ -32,8 +32,9 @@ const App = {
     document.getElementById("btnExport").addEventListener("click", () => this.exportData());
     document.getElementById("btnSettings").addEventListener("click", () => this.switchView("settings"));
     document.getElementById("syncChip").addEventListener("click", () => {
-      if (Sync.adapter) Sync.retry();
-      else UI.toast("云同步未配置：完成 Supabase 部署后即可多设备同步（docs/SUPABASE_SETUP.md）", 3200);
+      if (!Sync.adapter) { App.switchView("settings"); setTimeout(() => document.getElementById("cloudCard").scrollIntoView({ behavior: "smooth" }), 80); return; }
+      if (Sync.status === "loggedout") { App.switchView("settings"); setTimeout(() => document.getElementById("cloudCard").scrollIntoView({ behavior: "smooth" }), 80); return; }
+      Sync.retry();
     });
     this.syncThemeIcon();
   },

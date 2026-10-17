@@ -1,8 +1,7 @@
 # LifeOS 云同步部署指南（Supabase）
 
-> 状态：**待配置**。当前 `index.html` 未连接任何云端，顶栏同步芯片如实显示「本地模式」。
-> 按本文件完成部署后，即可实现 Windows 电脑与 iPhone 之间的数据同步。
-> 在完成之前，应用不会假装同步成功；所有核心功能（任务、计时、记录、统计、复盘）在本地模式下完整可用。
+> 状态：**代码已接入，待两步手动操作**：① 在 Supabase 执行建表 SQL（下方第 3 节）；② 在 App「设置 → 云同步」填写项目地址和 Publishable Key。
+> 完成前，应用顶栏同步芯片如实显示「本地模式」，所有核心功能在本地完整可用，不会假装同步成功。
 
 ## 1. 为什么是 Supabase
 
@@ -138,50 +137,40 @@ create policy "own reviews"      on public.reviews       for all using (auth.uid
 create policy "own settings"     on public.user_settings for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 ```
 
-## 4. 环境变量（前端可公开的两项）
+## 4. 在 App 中填写配置（约 1 分钟）
 
-部署到 GitHub Pages 时，在仓库 **Settings → Secrets and variables → Actions → Variables** 中配置（或 Pages 构建流程注入）：
+代码侧已内置 `SupabaseAdapter`（`src/js/supabase-adapter.js`），无需改代码，两种填写方式任选：
+
+**方式 A：设置页填写（推荐）**
+打开 LifeOS → 顶栏齿轮进入「设置」→「云同步」卡片 → 填写 Supabase 项目地址和 Publishable Key → 「保存并连接」。
+
+**方式 B：URL 参数一次性注入（适合手机端）**
+在电脑浏览器打开下面这个链接（把两处换成你的值），按提示登录后，手机端发一条同样的链接给自己、点开即完成配置（注入后地址栏自动清除密钥，不会留在历史记录）：
 
 ```
-LIFEOS_SUPABASE_URL=https://<project-ref>.supabase.co
-LIFEOS_SUPABASE_ANON_KEY=eyJ...
+https://meng-p7.github.io/LifeOs/?sb_url=https://<项目>.supabase.co&sb_key=<publishable-key>
 ```
 
-本地开发时可在 `src/js/sync.js` 顶部的读取处临时注入（不要提交真实值）。
+配置保存在本机浏览器。**publishable key 是设计上前端可用的公开客户端密钥**，数据隔离由 RLS 强制；`service_role` key 严禁出现在任何前端代码、链接或 Git 仓库中。
 
-## 5. 接入方式（前端同步层已预留接口）
+## 5. 登录与合并行为（已实现）
 
-`src/js/sync.js` 已实现同步状态机（本地 / 离线 / 同步中 / 已同步 / 失败 / 待同步）与记录级合并函数 `mergeStates`。接入只需两步：
+- **注册**：设置 → 云同步 → 邮箱 + 密码 →「注册新账号」。Supabase 默认发送确认邮件，点确认后返回登录。
+- **登录后自动同步**：先拉取远端与本地**按记录合并**（`id` + `updatedAt`，较新者胜），再把合并结果推回云端。
+  - 本地有数据、云端为空 → 本地数据上传，不会被空云端覆盖；
+  - 云端有、本地空 → 落地；
+  - 两边都有 → 逐条合并，冲突不静默丢数据。
+- **删除墓碑**：本地删除的记录以 `deleted=true` 参与同步，避免 A 设备删除后又被 B 设备同步回来。
+- **自动上传**：本地改动停止操作约 1 秒后自动推送；顶栏芯片实时显示 本地模式 / 未登录 / 同步中 / 已同步 / 待同步 / 离线 / 同步失败，点击芯片可重试。
+- **会话保持**：access_token 过期前自动用 refresh_token 续期；刷新页面不断登录状态。
 
-1. 实现 `CloudAdapter` 接口（接口约定见 `src/js/sync.js` 末尾注释）：`signIn / signUp / signOut / currentUser / push(state) / pull()`。
-   - `push`：把本地 `updated_at` 大于远端对应记录的条目 upsert 到上表（软删除记录也要上传，作为墓碑）。
-   - `pull`：按 `user_id` 拉取全表，组装为与本地同构的 state 对象，交给 `mergeStates` 合并。
-   - 会话恢复：`currentUser()` 命中时自动进入「已登录」并触发一次 pull。
-2. 在 `App.init()` 中注入：
-
-```js
-if (window.LIFEOS_SUPABASE_URL && window.LIFEOS_SUPABASE_ANON_KEY) {
-  Sync.adapter = new SupabaseAdapter({
-    url: window.LIFEOS_SUPABASE_URL,
-    anonKey: window.LIFEOS_SUPABASE_ANON_KEY
-  });
-}
-```
-
-## 6. 首次登录的数据合并规则（已实现保护）
-
-- 本地有数据、云端为空：登录后首次同步执行**上传合并**（push 优先），不会用空云端覆盖本地。
-- 云端有数据、本地为空：pull 后全量落地。
-- 两边都有：按记录 `id` + `updatedAt` 逐条合并，较新者胜；冲突不静默丢数据。
-- 删除走墓碑（`deleted=true` 记录参与同步），避免 A 设备删除的记录被 B 设备同步回来。
-
-## 7. 无配置环境的安全降级
+## 6. 无配置/异常环境的安全降级
 
 - 未注入环境变量时：`Sync.adapter = null`，状态恒为「本地模式」，顶栏芯片可点击并提示前往本指南。
 - 网络断开：状态切「离线」，本地保存不受影响，恢复联网后自动重试。
 - 同步失败：状态切「同步失败」，芯片可点击重试；**任何同步失败都不删除或回滚本地数据**。
 
-## 8. 验收清单（配置完成后逐项确认）
+## 7. 验收清单（配置完成后逐项确认）
 
 - [ ] 未登录时可正常使用全部本地功能
 - [ ] 注册 / 登录 / 退出 / 刷新后会话恢复
