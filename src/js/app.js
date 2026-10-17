@@ -1,0 +1,189 @@
+/* ================= 应用入口 ================= */
+"use strict";
+
+const App = {
+  curView: "today",
+
+  init() {
+    Store.load();
+    Theme.init();
+    Sync.init();
+    Timer.restore();
+    this.bindNav();
+    this.bindTopbar();
+    this.initBg();
+    this.initScrollFx();
+    this.renderAll();
+    this.renderTimerBar();
+    // 每分钟刷新一次时间轴「现在」标记
+    setInterval(() => { if (this.curView === "today") TodayView.renderTimelineInto(document.getElementById("view-today"), todayStr()); }, 60000);
+  },
+
+  bindNav() {
+    document.getElementById("nav").addEventListener("click", e => {
+      const btn = e.target.closest(".nav-item");
+      if (!btn) return;
+      this.switchView(btn.dataset.view);
+    });
+  },
+
+  bindTopbar() {
+    document.getElementById("btnTheme").addEventListener("click", () => { Theme.toggle(); this.syncThemeIcon(); });
+    document.getElementById("btnExport").addEventListener("click", () => this.exportData());
+    document.getElementById("btnSettings").addEventListener("click", () => this.switchView("settings"));
+    document.getElementById("syncChip").addEventListener("click", () => {
+      if (Sync.adapter) Sync.retry();
+      else UI.toast("云同步未配置：完成 Supabase 部署后即可多设备同步（docs/SUPABASE_SETUP.md）", 3200);
+    });
+    this.syncThemeIcon();
+  },
+
+  syncThemeIcon() {
+    const btn = document.getElementById("btnTheme");
+    const dark = Theme.current() === "dark";
+    btn.innerHTML = dark
+      ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>`
+      : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>`;
+    btn.title = dark ? "切换到浅色" : "切换到深色";
+  },
+
+  switchView(v) {
+    this.curView = v;
+    ["today", "tasks", "study", "fitness", "schedule", "review", "settings"].forEach(x => {
+      const el = document.getElementById("view-" + x);
+      if (!el) return;
+      el.classList.toggle("show", x === v);
+      el.hidden = x !== v;
+    });
+    document.querySelectorAll(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.view === v));
+    window.scrollTo({ top: 0, behavior: "instant" });
+    if (v === "today") TodayView.render();
+    if (v === "tasks") { TasksView.render(); }
+    if (v === "study") StudyView.render();
+    if (v === "fitness") FitnessView.render();
+    if (v === "schedule") ScheduleView.render();
+    if (v === "review") ReviewView.render();
+    if (v === "settings") SettingsView.render();
+  },
+
+  renderAll() {
+    const line = document.getElementById("dateLine");
+    if (line) line.textContent = `${today().getFullYear()} 年 ${today().getMonth() + 1} 月 ${today().getDate()} 日 · ${WEEK_CN[today().getDay()]}`;
+    this.switchView(this.curView);
+    Sync.renderChip();
+  },
+
+  /* ---- 计时器浮动条 ---- */
+  renderTimerBar() {
+    const bar = document.getElementById("timerBar");
+    if (!bar) return;
+    if (!Timer.active) { bar.hidden = true; return; }
+    bar.hidden = false;
+    document.getElementById("timerLabel").textContent = (Store.subjectName(Timer.active.subjectId) || "计时") + (Timer.isRunning() ? "" : "（已暂停）");
+    document.getElementById("timerClock").textContent = fmtClock(Timer.elapsedMs() / 1000);
+    document.getElementById("timerPause").textContent = Timer.isRunning() ? "暂停" : "继续";
+    document.getElementById("timerPause").onclick = () => { Timer.isRunning() ? Timer.pause() : Timer.resume(); if (this.curView === "study") StudyView.render(); };
+    document.getElementById("timerStop").onclick = () => { Timer.stop(); if (this.curView === "study") StudyView.render(); };
+    // 同步学习页大时钟
+    const big = document.getElementById("timerBig");
+    if (big) big.textContent = fmtClock(Timer.elapsedMs() / 1000);
+  },
+
+  /* ---- 导入 / 导出 ---- */
+  exportData() {
+    const blob = new Blob([JSON.stringify({ ...Store.state, exportAt: new Date().toISOString() }, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `LifeOS备份_${todayStr()}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    UI.toast("备份文件已下载");
+  },
+
+  bindImport() {
+    document.getElementById("fileImport").addEventListener("change", async e => {
+      const f = e.target.files[0];
+      if (!f) return;
+      try {
+        const text = await f.text();
+        const data = JSON.parse(text);
+        if (!data || typeof data !== "object" || !Array.isArray(data.tasks)) throw new Error("缺少 tasks 字段");
+        const ok = await UI.confirmDanger("导入备份", "导入将合并/覆盖当前数据（同 ID 记录以较新者为准）。建议先导出当前数据作为备份。继续吗？", "确认导入");
+        if (!ok) { e.target.value = ""; return; }
+        const merged = mergeStates(Store.state, data);
+        Store.state = merged;
+        Store.save();
+        this.renderAll();
+        UI.toast("导入成功");
+      } catch (err) {
+        UI.toast("导入失败：文件格式不正确（" + err.message + "）");
+      }
+      e.target.value = "";
+    });
+  },
+
+  /* ---- 动态背景（低强度，不干扰操作） ---- */
+  initBg() {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const cv = document.getElementById("bgCanvas");
+    const ctx = cv.getContext("2d");
+    let W, H, DPR;
+    const resize = () => {
+      DPR = Math.min(window.devicePixelRatio || 1, 2);
+      W = window.innerWidth; H = window.innerHeight;
+      cv.width = W * DPR; cv.height = H * DPR;
+      cv.style.width = W + "px"; cv.style.height = H + "px";
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    };
+    resize();
+    window.addEventListener("resize", resize);
+    const blobs = [
+      { x: .15, y: .18, r: .42, vx: .00022, vy: .00016, c: [59, 110, 245], a: .10 },
+      { x: .85, y: .25, r: .36, vx: -.00018, vy: .00021, c: [123, 92, 240], a: .09 },
+      { x: .55, y: .85, r: .44, vx: .00015, vy: -.00019, c: [255, 90, 122], a: .07 },
+      { x: .25, y: .7, r: .3, vx: .0002, vy: .00014, c: [23, 178, 106], a: .06 }
+    ].map(b => ({ ...b, x: b.x * W, y: b.y * H, r: b.r * Math.max(W, H) }));
+    let t = 0;
+    (function draw() {
+      t++;
+      ctx.clearRect(0, 0, W, H);
+      blobs.forEach(b => {
+        b.x += b.vx * W * .05; b.y += b.vy * H * .05;
+        if (b.x < -b.r * .6) b.x = W + b.r * .6; if (b.x > W + b.r * .6) b.x = -b.r * .6;
+        if (b.y < -b.r * .6) b.y = H + b.r * .6; if (b.y > H + b.r * .6) b.y = -b.r * .6;
+        const g = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r);
+        g.addColorStop(0, `rgba(${b.c[0]},${b.c[1]},${b.c[2]},${b.a})`);
+        g.addColorStop(1, `rgba(${b.c[0]},${b.c[1]},${b.c[2]},0)`);
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill();
+      });
+      requestAnimationFrame(draw);
+    })();
+  },
+
+  initScrollFx() {
+    const bar = document.getElementById("scrollProgress");
+    const tb = document.getElementById("topbar");
+    window.addEventListener("scroll", () => {
+      const h = document.documentElement.scrollHeight - window.innerHeight;
+      bar.style.width = (h > 0 ? window.scrollY / h * 100 : 0) + "%";
+      tb.classList.toggle("stuck", window.scrollY > 8);
+    }, { passive: true });
+  }
+};
+
+/* 设置视图容器（动态加入，避免模板过长） */
+(function ensureSettingsView() {
+  const sec = document.createElement("section");
+  sec.className = "view";
+  sec.id = "view-settings";
+  sec.setAttribute("role", "tabpanel");
+  sec.setAttribute("aria-label", "设置");
+  sec.hidden = true;
+  document.getElementById("main").append(sec);
+})();
+
+document.addEventListener("DOMContentLoaded", () => {
+  App.bindImport();
+  App.init();
+});
