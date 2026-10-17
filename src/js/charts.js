@@ -63,7 +63,8 @@ const Charts = {
       const x = PL + i * bw + bw * 0.18;
       const y = h - PB - bh;
       const isToday = highlightLast && i === items.length - 1;
-      return `<g><rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(bw * 0.64).toFixed(1)}" height="${bh.toFixed(1)}" rx="6" fill="${isToday ? "var(--blue)" : "var(--blue-soft-2)"}" stroke="${isToday ? "var(--blue)" : "var(--blue-2)"}" stroke-width="1.5"><title>${esc(it.tip || it.label)}：${it.value}${unit}</title></rect>
+      const zero = it.value === 0;
+      return `<g><rect class="bar${isToday ? " today" : ""}${zero ? " zero" : ""}" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(bw * 0.64).toFixed(1)}" height="${bh.toFixed(1)}" rx="6"><title>${esc(it.tip || it.label)}：${it.value}${unit}</title></rect>
       <text class="chart-axis" x="${(x + bw * 0.32).toFixed(1)}" y="${h - 8}" text-anchor="middle">${esc(it.label)}</text></g>`;
     }).join("");
     return this.svg(w, h, bars, label);
@@ -107,6 +108,33 @@ const Charts = {
       ${label ? `<text x="50%" y="63%" text-anchor="middle" dominant-baseline="middle" class="chart-ring-sub">${esc(label)}</text>` : ""}`;
     const el = this.svg(size, size, content, `完成率 ${pct}%`);
     el.style.width = size + "px";
+    return el;
+  },
+
+  /* ---------- 环形图（当日学习时长占比） ---------- */
+  donut({ segments, size = 190, thickness = 26, centerText = "", centerSub = "", label }) {
+    // segments: [{name, value, color}]
+    const total = segments.reduce((a, s) => a + (s.value || 0), 0);
+    if (!total) return null;
+    const r = (size - thickness) / 2, c = 2 * Math.PI * r, cx = size / 2, cy = size / 2;
+    let acc = 0;
+    const arcs = segments.map(s => {
+      const frac = (s.value || 0) / total;
+      const dash = Math.max(0, frac * c - 2.5);
+      const rot = -90 + acc * 360;
+      acc += frac;
+      return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${s.color}" stroke-width="${thickness}"
+        stroke-dasharray="${dash.toFixed(2)} ${(c-dash).toFixed(2)}" transform="rotate(${rot.toFixed(2)} ${cx} ${cy})"
+        style="transition:stroke-dasharray .6s ease"><title>${esc(s.name)}：${s.value} 分钟（${Math.round(frac*100)}%）</title></circle>`;
+    }).join("");
+    const content = `
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--bg-2)" stroke-width="${thickness}"/>
+      ${arcs}
+      ${centerText ? `<text x="50%" y="46%" text-anchor="middle" dominant-baseline="middle" class="chart-ring-text">${esc(centerText)}</text>` : ""}
+      ${centerSub ? `<text x="50%" y="64%" text-anchor="middle" dominant-baseline="middle" class="chart-ring-sub">${esc(centerSub)}</text>` : ""}`;
+    const el = this.svg(size, size, content, label || "当日学习时长占比");
+    el.style.width = size + "px";
+    el.style.maxWidth = "100%";
     return el;
   },
 

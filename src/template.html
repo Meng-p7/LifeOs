@@ -48,7 +48,7 @@
       <span>任务</span>
     </button>
     <button class="nav-item" data-view="study" type="button">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 7 12 12 15 14"/></svg>
       <span>学习</span>
     </button>
     <button class="nav-item" data-view="fitness" type="button">
@@ -77,17 +77,6 @@
 </div>
 
 <!-- 计时器浮动条 -->
-<div class="timer-bar" id="timerBar" hidden aria-live="polite">
-  <div class="timer-info">
-    <span class="timer-dot" aria-hidden="true"></span>
-    <span id="timerLabel">计时中</span>
-    <strong id="timerClock">00:00</strong>
-  </div>
-  <div class="timer-actions">
-    <button class="btn small" id="timerPause" type="button">暂停</button>
-    <button class="btn small primary" id="timerStop" type="button">结束并记录</button>
-  </div>
-</div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 

@@ -116,12 +116,12 @@ const ReviewView = {
     const weekTasks = Store.state.tasks.filter(t => !t.deleted && t.createdAt && dstr(new Date(t.createdAt)) >= w0 && dstr(new Date(t.createdAt)) <= w1);
     const weekDone = Store.state.tasks.filter(t => t.done && t.doneAt && dstr(new Date(t.doneAt)) >= w0 && dstr(new Date(t.doneAt)) <= w1);
     const weekFit = Object.keys(Store.state.fitness).filter(d => d >= w0 && d <= w1).length;
-    // 科目时长
-    const bySub = {};
-    Store.state.study.forEach(r => { if (!r.deleted && r.date >= w0 && r.date <= w1) bySub[r.subjectId || "__none"] = (bySub[r.subjectId || "__none"] || 0) + r.minutes; });
-    const subjItems = Object.entries(bySub).map(([k, v]) => ({
-      name: k === "__none" ? "未分类" : (Store.subjectName(k) || "已删科目"), minutes: v
-    })).sort((a, b) => b.minutes - a.minutes);
+    // 本周各事项学习时长
+    const itemMin = {};
+    Object.entries(Store.state.study.days).forEach(([date, m]) => {
+      if (date >= w0 && date <= w1) Object.entries(m || {}).forEach(([id, v]) => { itemMin[id] = (itemMin[id] || 0) + (v || 0); });
+    });
+    const subjItems = Store.studyItems().map(it => ({ name: it.title, minutes: itemMin[it.id] || 0 })).filter(x => x.minutes > 0).sort((a, b) => b.minutes - a.minutes);
     // 体重变化
     const wStart = (() => { for (let i = 0; i < 7; i++) { const d = parseDate(w0); d.setDate(d.getDate() + i); const v = Store.weightOf(dstr(d)); if (v !== null) return v; } return null; })();
     const wEnd = (() => { for (let i = 6; i >= 0; i--) { const d = parseDate(w0); d.setDate(d.getDate() + i); const v = Store.weightOf(dstr(d)); if (v !== null) return v; } return null; })();
@@ -133,7 +133,7 @@ const ReviewView = {
         UI.stat({ value: `${weekFit} 次`, label: "本周训练", color: "coral", sub: `计划 ${Store.state.settings.training.planDays.length} 次` }),
         UI.stat({ value: wStart !== null && wEnd !== null ? `${(wEnd - wStart > 0 ? "+" : "")}${(wEnd - wStart).toFixed(1)} kg` : "—", label: "本周体重变化", color: "blue" })),
       subjItems.length ? UI.h("div", { class: "chart-box", style: "margin-bottom:14px" },
-        UI.h("div", { style: "font-size:13px;font-weight:700;margin-bottom:8px" }, "各科目学习时长"),
+        UI.h("div", { style: "font-size:13px;font-weight:700;margin-bottom:8px" }, "各事项学习时长"),
         UI.h("div", { class: "hbars" }, subjItems.map(it => {
           const total = subjItems.reduce((a, b) => a + b.minutes, 0) || 1;
           const pct = Math.round(it.minutes / total * 100);

@@ -14,7 +14,6 @@ const App = {
     this.initBg();
     this.initScrollFx();
     this.renderAll();
-    this.renderTimerBar();
     // 每分钟刷新一次时间轴「现在」标记
     setInterval(() => { if (this.curView === "today") TodayView.renderTimelineInto(document.getElementById("view-today"), todayStr()); }, 60000);
   },
@@ -72,22 +71,6 @@ const App = {
     if (line) line.textContent = `${today().getFullYear()} 年 ${today().getMonth() + 1} 月 ${today().getDate()} 日 · ${WEEK_CN[today().getDay()]}`;
     this.switchView(this.curView);
     Sync.renderChip();
-  },
-
-  /* ---- 计时器浮动条 ---- */
-  renderTimerBar() {
-    const bar = document.getElementById("timerBar");
-    if (!bar) return;
-    if (!Timer.active) { bar.hidden = true; return; }
-    bar.hidden = false;
-    document.getElementById("timerLabel").textContent = (Store.subjectName(Timer.active.subjectId) || "计时") + (Timer.isRunning() ? "" : "（已暂停）");
-    document.getElementById("timerClock").textContent = fmtClock(Timer.elapsedMs() / 1000);
-    document.getElementById("timerPause").textContent = Timer.isRunning() ? "暂停" : "继续";
-    document.getElementById("timerPause").onclick = () => { Timer.isRunning() ? Timer.pause() : Timer.resume(); if (this.curView === "study") StudyView.render(); };
-    document.getElementById("timerStop").onclick = () => { Timer.stop(); if (this.curView === "study") StudyView.render(); };
-    // 同步学习页大时钟
-    const big = document.getElementById("timerBig");
-    if (big) big.textContent = fmtClock(Timer.elapsedMs() / 1000);
   },
 
   /* ---- 导入 / 导出 ---- */

@@ -195,7 +195,7 @@ function mergeStates(local, remote) {
     v: 2,
     settings: { ...local.settings, ...remote.settings, training: { ...local.settings.training, ...(remote.settings && remote.settings.training || {}) } },
     tasks: mergeArr(local.tasks, remote.tasks),
-    study: mergeArr(local.study, remote.study),
+    study: normalizeStudy((remote.study && (remote.study.updatedAt || 0) >= (local.study && local.study.updatedAt || 0)) ? remote.study : local.study),
     blocks: mergeArr(local.blocks, remote.blocks),
     fitness: mergeDict(local.fitness, remote.fitness),
     weight: mergeDict(local.weight, remote.weight),

@@ -43,13 +43,35 @@ function defaultState() {
       subjects: []
     },
     tasks: [],
-    study: [],
+    study: defaultStudy(),
     fitness: {},
     weight: {},
     diet: {},
     blocks: [],
     reviews: {},
     quotes: { queue: [], shown: {} }
+  };
+}
+
+/* 学习模块（极简番茄钟）：用户自建事项 → 逐事项计时 → 按天累计 */
+function defaultStudy() {
+  return {
+    items: [
+      { id: "si_word", title: "背单词" },
+      { id: "si_math", title: "数学刷题" },
+      { id: "si_major", title: "专业课复习" }
+    ],
+    days: {},          // { "YYYY-MM-DD": { itemId: 分钟 } }
+    updatedAt: 0
+  };
+}
+function normalizeStudy(s) {
+  const d = defaultStudy();
+  if (!s || typeof s !== "object" || Array.isArray(s)) return d;
+  return {
+    items: Array.isArray(s.items) ? s.items.filter(x => x && x.id && x.title) : d.items,
+    days: (s.days && typeof s.days === "object" && !Array.isArray(s.days)) ? s.days : {},
+    updatedAt: s.updatedAt || 0
   };
 }
 
@@ -69,6 +91,7 @@ function migrateV1(raw) {
     ["fitness", "weight", "diet", "reviews", "quotes"].forEach(k => {
       if (!merged[k] || typeof merged[k] !== "object") merged[k] = d[k];
     });
+    merged.study = normalizeStudy(raw.study);
     return merged;
   }
 
@@ -132,7 +155,6 @@ const Store = {
     if (raw && raw.v !== 2) this.save();
     return this.state;
   },
-
   save() {
     try {
       localStorage.setItem(DB_KEY, JSON.stringify(this.state));
@@ -153,11 +175,24 @@ const Store = {
   openTasks() { return this.state.tasks.filter(t => !t.deleted && !t.done); },
   taskById(id) { return this.state.tasks.find(t => t.id === id); },
 
-  /* ---- 学习记录 ---- */
-  studyOf(date) { return this.state.study.filter(r => !r.deleted && r.date === date); },
-  studyMinutes(date) { return this.studyOf(date).reduce((a, r) => a + r.minutes, 0); },
+  /* ---- 学习（番茄钟） ---- */
+  studyItems() { return this.state.study.items; },
+  studyDay(date) { return this.state.study.days[date] || {}; },
+  studyMinutes(date) {
+    const d = this.studyDay(date);
+    return Object.values(d).reduce((a, b) => a + (b || 0), 0);
+  },
   studyMinutesBetween(d0, d1) {
-    return this.state.study.filter(r => !r.deleted && r.date >= d0 && r.date <= d1).reduce((a, r) => a + r.minutes, 0);
+    let sum = 0;
+    Object.entries(this.state.study.days).forEach(([date, m]) => {
+      if (date >= d0 && date <= d1) sum += Object.values(m || {}).reduce((a, b) => a + (b || 0), 0);
+    });
+    return sum;
+  },
+  studyAddMinutes(date, itemId, minutes) {
+    if (!this.state.study.days[date]) this.state.study.days[date] = {};
+    this.state.study.days[date][itemId] = (this.state.study.days[date][itemId] || 0) + minutes;
+    this.state.study.updatedAt = Date.now();
   },
 
   /* ---- 体重 ---- */

@@ -186,6 +186,7 @@ class SupabaseAdapter {
       st.reviews[r.key] = { ...(r.data || {}), updatedAt: ts(r.updated_at) || Date.now() };
     });
     st.settings = { ...st.settings, ...(settings && settings[0] && settings[0].data || {}) };
+    st.study = normalizeStudy(settings && settings[0] && settings[0].data && settings[0].data.study);
     return st;
   }
 
@@ -238,7 +239,8 @@ class SupabaseAdapter {
           examName: state.settings.examName, examDate: state.settings.examDate,
           dietGoalKcal: state.settings.dietGoalKcal, weightGoal: state.settings.weightGoal,
           training: state.settings.training,
-          subjects: state.settings.subjects
+          subjects: state.settings.subjects,
+          study: state.study
         },
         updated_at: new Date().toISOString()
       }])

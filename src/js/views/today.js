@@ -26,10 +26,8 @@ const TodayView = {
     if (!summary) return;
     const open = Store.openTasks();
     const overdue = open.filter(x => x.due && dayDiff(ts, x.due) > 0);
-    const studyMin = Store.studyMinutes(ts);
     const parts = [`待完成 ${open.length} 项`];
     if (overdue.length) parts.push(`逾期 ${overdue.length} 项`);
-    parts.push(`今日已学习 ${fmtMin(studyMin)}`);
     summary.textContent = parts.join(" · ");
   },
 
@@ -185,7 +183,7 @@ const TodayView = {
         UI.stat({ value: `${weekFit} 次`, label: "本周训练", color: "violet", sub: `计划 ${Store.state.settings.training.planDays.length} 次/周`, onClick: goFit }),
         UI.stat({ value: Store.reviewOf(ts) ? "已写" : "未写", label: "今日复盘", color: Store.reviewOf(ts) ? "green" : "amber", onClick: goReview })
       ),
-      UI.h("div", { class: "chart-note" }, "以上数字均来自你的真实记录：学习时长来自计时与手动记录，训练次数来自打卡，体重来自每日录入。")
+      UI.h("div", { class: "chart-note" }, "以上数字均来自你的真实记录：学习时长来自计时，训练次数来自打卡，体重来自每日录入。")
     );
   }
 };
