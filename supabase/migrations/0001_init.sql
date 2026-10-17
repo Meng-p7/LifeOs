@@ -68,7 +68,7 @@ create table if not exists public.blocks (
   type text not null default 'other',
   date date not null,
   start time not null,
-  end time not null,
+  "end" time not null,
   task_id text,
   done boolean not null default false,
   created_at timestamptz not null default now(),
