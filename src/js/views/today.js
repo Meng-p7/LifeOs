@@ -13,10 +13,8 @@ const TodayView = {
     el.append(
       this.heroSection(greet, t),
       this.focusSection(ts),
-      this.timelineSection(ts),
       this.statsSection(ts)
     );
-    this.renderTimelineInto(el, ts);
     this.fillSummary(ts);
   },
 
@@ -110,56 +108,6 @@ const TodayView = {
     return card;
   },
 
-  /* 4.3 今日时间轴 */
-  timelineSection(ts) {
-    const card = UI.h("div", { class: "card" },
-      UI.h("div", { class: "card-title" },
-        UI.h("span", { class: "bar", style: "background:var(--violet)" }), "今日时间轴",
-        UI.h("span", { class: "extra" },
-          UI.h("button", { class: "btn small", type: "button", onclick: () => App.switchView("schedule") }, "完整日程 →")))
-    );
-    const wrap = UI.h("div", { id: "todayTimeline", class: "timeline" });
-    card.append(wrap);
-    return card;
-  },
-
-  renderTimelineInto(root, ts) {
-    const wrap = root.querySelector("#todayTimeline");
-    if (!wrap) return;
-    const blocks = Store.blocksOf(ts);
-    const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
-    wrap.innerHTML = "";
-    if (!blocks.length) {
-      wrap.append(UI.empty("今天还没有安排时间块", "在「日程」里添加课程、学习或健身时间块", UI.h("button", { class: "btn small", type: "button", onclick: () => App.switchView("schedule") }, "去安排")));
-      return;
-    }
-    // 当前时间线
-    const first = blocks[0];
-    if (nowMin > toMin(first.start)) {
-      wrap.append(UI.h("div", { class: "tl-nowline" }, UI.h("span", {}, `${pad(Math.floor(nowMin / 60))}:${pad(nowMin % 60)} 现在`)));
-    }
-    blocks.forEach(b => {
-      const startM = toMin(b.start), endM = toMin(b.end);
-      const done = b.done;
-      const now = nowMin >= startM && nowMin < endM;
-      const missed = !done && endM < nowMin;
-      const item = UI.h("div", { class: `tl-item ${done ? "done" : now ? "now" : missed ? "missed" : ""}` },
-        UI.h("span", { class: "time" }, b.start),
-        UI.h("span", { class: "dot" }),
-        UI.h("div", { class: "body" },
-          UI.h("div", { class: "title" },
-            done ? UI.h("s", {}, b.title) : UI.h("span", {}, b.title),
-            UI.h("span", { class: `tag tag-type-${b.type}` }, BLOCK_TYPE_LABEL(b.type))),
-          UI.h("div", { class: "sub" }, `${b.start}–${b.end}${b.taskId ? " · 关联任务" : ""}`)),
-        UI.h("div", { class: "ops" },
-          !done ? UI.h("button", { class: "mini-btn", type: "button", title: "标记完成", "aria-label": "标记完成", onclick: () => { b.done = true; Store.touch(b); Store.save(); TodayView.render(); UI.toast("已完成"); } },
-            UI.h("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2.4", "stroke-linecap": "round" }, UI.h("polyline", { points: "20 6 9 17 4 12" }))) : null,
-          UI.h("button", { class: "mini-btn", type: "button", title: "编辑", "aria-label": "编辑时间块", onclick: () => ScheduleView.editBlock(b) },
-            UI.h("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2.2", "stroke-linecap": "round" }, UI.h("path", { d: "M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"}))))
-      );
-      wrap.append(item);
-    });
-  },
 
   /* 4.4 核心数据概览 */
   statsSection(ts) {

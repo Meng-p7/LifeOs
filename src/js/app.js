@@ -9,13 +9,14 @@ const App = {
     Theme.init();
     Sync.init();
     Timer.restore();
+    this.initLiquidGlass();
     this.bindNav();
     this.bindTopbar();
     this.initBg();
     this.initScrollFx();
     this.renderAll();
-    // 每分钟刷新一次时间轴「现在」标记
-    setInterval(() => { if (this.curView === "today") TodayView.renderTimelineInto(document.getElementById("view-today"), todayStr()); }, 60000);
+    // 窗口尺寸变化时重定位 pill
+    window.addEventListener("resize", () => this.moveNavPill());
   },
 
   bindNav() {
@@ -49,21 +50,71 @@ const App = {
 
   switchView(v) {
     this.curView = v;
-    ["today", "tasks", "study", "fitness", "schedule", "review", "settings"].forEach(x => {
+    ["today", "tasks", "study", "fitness", "review", "settings"].forEach(x => {
       const el = document.getElementById("view-" + x);
       if (!el) return;
       el.classList.toggle("show", x === v);
       el.hidden = x !== v;
     });
     document.querySelectorAll(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.view === v));
+    this.moveNavPill();
     window.scrollTo({ top: 0, behavior: "instant" });
     if (v === "today") TodayView.render();
     if (v === "tasks") { TasksView.render(); }
     if (v === "study") StudyView.render();
     if (v === "fitness") FitnessView.render();
-    if (v === "schedule") ScheduleView.render();
     if (v === "review") ReviewView.render();
     if (v === "settings") SettingsView.render();
+  },
+
+  /* Liquid Glass 导航：滑动 pill 跟随激活项 */
+  moveNavPill() {
+    const pill = document.getElementById("navPill");
+    const active = document.querySelector(".nav-item.active");
+    if (!pill || !active) return;
+    const r = active.getBoundingClientRect();
+    const nr = active.parentElement.getBoundingClientRect();
+    pill.style.width = r.width + "px";
+    pill.style.opacity = "1";
+    pill.style.transform = `translateX(${r.left - nr.left}px)`;
+  },
+
+  /* 生成 SVG 折射滤镜（feImage 位移贴图 + feDisplacementMap），参考 archisvaze/liquid-glass
+   * 仅 Chrome 生效（@supports 检测），Firefox/Safari 自动降级为 CSS blur */
+  initLiquidGlass() {
+    const defs = document.getElementById("lg-defs");
+    if (!defs) return;
+    try {
+      const W = 440, H = 84, R = 26;
+      const c = document.createElement("canvas");
+      c.width = W; c.height = H;
+      const ctx = c.getContext("2d");
+      const img = ctx.createImageData(W, H);
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          // 越靠近左右边缘与圆角，位移越大（模拟玻璃边缘厚度折射）
+          const dx = Math.min(x + 1, W - x);
+          const dy = Math.min(y + 1, H - y);
+          const edgeX = Math.min(1, dx / (R * 1.7));
+          const edgeY = Math.min(1, dy / (R * 1.0));
+          const edge = Math.min(edgeX, edgeY);
+          const s = Math.pow(1 - edge, 1.6);
+          const i = (y * W + x) * 4;
+          img.data[i] = 128 + s * 100;      // R 通道 → 水平位移
+          img.data[i + 1] = 128 + s * 26;   // G 通道 → 垂直微位移
+          img.data[i + 2] = 128;
+          img.data[i + 3] = 255;
+        }
+      }
+      ctx.putImageData(img, 0, 0);
+      const url = c.toDataURL();
+      defs.innerHTML = `<filter id="lg-glass" x="0%" y="0%" width="100%" height="100%" color-interpolation-filters="sRGB">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="b"/>
+        <feImage href="${url}" x="0" y="0" width="100%" height="100%" result="dm" preserveAspectRatio="none"/>
+        <feDisplacementMap in="b" in2="dm" scale="14" xChannelSelector="R" yChannelSelector="G" result="d"/>
+        <feColorMatrix in="d" type="saturate" values="1.55"/>
+      </filter>`;
+    } catch (e) { /* 降级：无滤镜时 CSS blur 仍生效 */ }
   },
 
   renderAll() {

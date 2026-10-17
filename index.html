@@ -145,27 +145,59 @@ input,select,textarea{font-family:var(--font);font-size:14px;color:var(--ink)}
 .sync-icon.offline{color:var(--ink-3)}
 .sync-icon.error{color:var(--coral-deep)}
 
-/* ---------- 导航：桌面顶部 / 移动底部 ---------- */
+/* ---------- 导航：桌面顶部 / 移动底部（Liquid Glass） ---------- */
 .nav{
-  display:flex;gap:4px;border-bottom:2px solid var(--line);
-  margin-bottom:22px;overflow-x:auto;scrollbar-width:none;
+  position:relative;display:flex;gap:2px;width:fit-content;max-width:100%;
+  margin:0 auto 22px;padding:5px;border-radius:99px;
+  background:rgba(255,255,255,.45);
+  border:1px solid rgba(255,255,255,.65);
+  backdrop-filter:blur(22px) saturate(170%);
+  -webkit-backdrop-filter:blur(22px) saturate(170%);
+  box-shadow:0 6px 22px rgba(20,24,40,.1),inset 0 1px 0 rgba(255,255,255,.85),inset 0 -1px 0 rgba(255,255,255,.3);
+  overflow-x:auto;scrollbar-width:none;
+}
+/* Chrome：SVG 位移贴图折射（真液体感），其余浏览器保持 blur 降级 */
+@supports (backdrop-filter:url(#lg-glass)){
+  .nav{
+    backdrop-filter:url(#lg-glass) saturate(170%);
+    -webkit-backdrop-filter:url(#lg-glass) saturate(170%);
+    background:rgba(255,255,255,.3);
+  }
+}
+[data-theme="dark"] .nav{
+  background:rgba(24,29,48,.5);
+  border-color:rgba(255,255,255,.13);
+  box-shadow:0 6px 22px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.18),inset 0 -1px 0 rgba(255,255,255,.05);
+}
+@supports (backdrop-filter:url(#lg-glass)){
+  [data-theme="dark"] .nav{background:rgba(24,29,48,.38)}
 }
 .nav::-webkit-scrollbar{display:none}
+/* 滑动玻璃 pill（跟随激活项） */
+.nav-pill{
+  position:absolute;left:0;top:5px;transform:translateX(0);
+  height:calc(100% - 10px);border-radius:99px;width:0;opacity:0;
+  background:linear-gradient(135deg,rgba(255,255,255,.72),rgba(255,255,255,.32));
+  border:1px solid rgba(255,255,255,.85);
+  box-shadow:0 3px 12px rgba(20,24,40,.1),inset 0 1px 0 rgba(255,255,255,.95),inset 0 -1px 0 rgba(255,255,255,.4);
+  backdrop-filter:blur(8px) saturate(160%);-webkit-backdrop-filter:blur(8px) saturate(160%);
+  transition:transform .4s var(--ease),width .4s var(--ease),opacity .25s ease;
+  pointer-events:none;z-index:0;
+}
+[data-theme="dark"] .nav-pill{
+  background:linear-gradient(135deg,rgba(255,255,255,.17),rgba(255,255,255,.05));
+  border-color:rgba(255,255,255,.16);
+  box-shadow:0 3px 12px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.22);
+}
 .nav-item{
-  position:relative;display:inline-flex;align-items:center;gap:7px;
+  position:relative;z-index:1;display:inline-flex;align-items:center;gap:7px;
   padding:11px 18px;font-size:14.5px;font-weight:600;color:var(--ink-2);
-  white-space:nowrap;border-radius:8px 8px 0 0;transition:color .18s;
+  white-space:nowrap;border-radius:99px;transition:color .2s;
   min-height:44px;
 }
 .nav-item svg{width:17px;height:17px;flex:none}
 .nav-item:hover{color:var(--ink)}
 .nav-item.active{color:var(--blue)}
-.nav-item.active::after{
-  content:"";position:absolute;left:12px;right:12px;bottom:-2px;height:3px;
-  background:linear-gradient(90deg,var(--blue),var(--violet));border-radius:3px 3px 0 0;
-  animation:tabIn .3s var(--ease);
-}
-@keyframes tabIn{from{transform:scaleX(.3);opacity:0}to{transform:scaleX(1);opacity:1}}
 .nav-item .badge{
   min-width:17px;height:17px;padding:0 4px;border-radius:99px;background:var(--coral);color:#fff;
   font-size:10.5px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;
@@ -346,26 +378,6 @@ button.stat:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
 .t-check.on{background:var(--green);border-color:var(--green)}
 .t-check.on svg{opacity:1;transform:scale(1) rotate(0)}
 
-/* 时间轴 */
-.timeline{position:relative;padding-left:56px}
-.timeline::before{content:"";position:absolute;left:43px;top:6px;bottom:6px;width:2px;background:var(--line);border-radius:1px}
-.tl-item{position:relative;display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:var(--r-md);border:1px solid transparent;margin-bottom:4px;transition:background .15s,border-color .15s}
-.tl-item:hover{background:var(--surface-2);border-color:var(--line)}
-.tl-item .time{position:absolute;left:-56px;width:44px;text-align:right;font-size:12px;font-weight:700;color:var(--ink-2);padding-top:2px}
-.tl-item .dot{position:absolute;left:-17px;top:14px;width:10px;height:10px;border-radius:50%;background:var(--surface);border:2.5px solid var(--blue)}
-.tl-item.done .dot{background:var(--green);border-color:var(--green)}
-.tl-item.now .dot{background:var(--coral);border-color:var(--coral);animation:pulse 2s infinite}
-.tl-item.missed .dot{border-color:var(--ink-3)}
-@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.7);opacity:.6}}
-.tl-item .body{flex:1;min-width:0}
-.tl-item .title{font-size:13.5px;font-weight:700;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-.tl-item .title s{color:var(--ink-3)}
-.tl-item .sub{font-size:12px;color:var(--ink-3);margin-top:2px}
-.tl-item .ops{display:flex;gap:4px;flex:none}
-.tl-nowline{position:relative;height:0;border-top:2px dashed var(--coral);margin:6px 0 6px 56px}
-.tl-nowline span{position:absolute;right:0;top:-18px;font-size:11px;font-weight:800;color:var(--coral-deep);background:var(--surface);padding:0 6px;border-radius:4px}
-.tl-conflict{font-size:11px;font-weight:700;color:#a8760a;background:var(--amber-soft);padding:2px 8px;border-radius:99px;display:inline-flex;align-items:center;gap:4px}
-[data-theme="dark"] .tl-conflict{color:var(--amber)}
 
 /* 任务列表 */
 .task-list{display:flex;flex-direction:column;gap:8px}
@@ -531,43 +543,6 @@ button.stat:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
 .hist-note{font-size:12px;color:var(--ink-3);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:none}
 .rpe-badge{font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:99px;background:var(--surface);border:1px solid var(--line);color:var(--ink-2);flex:none}
 
-/* 日程：日视图 */
-.sched-day{position:relative}
-.sched-hours{position:relative;border-left:2px solid var(--line);margin-left:56px;padding:8px 0}
-.sched-hour{position:relative;height:52px;border-top:1px dashed var(--line)}
-.sched-hour:first-child{border-top:none}
-.sched-hour .lab{position:absolute;left:-52px;top:-8px;width:44px;text-align:right;font-size:11px;font-weight:700;color:var(--ink-3)}
-.sched-block{
-  position:absolute;left:8px;right:8px;border-radius:10px;padding:7px 11px;font-size:12.5px;
-  border:1.5px solid var(--line-2);background:var(--surface);box-shadow:var(--shadow);
-  overflow:hidden;cursor:pointer;transition:transform .15s var(--ease),box-shadow .15s;z-index:2;
-}
-.sched-block:hover{transform:translateY(-1px);box-shadow:var(--shadow-lg);z-index:3}
-.sched-block .t{font-weight:800;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
-.sched-block .s{font-size:11px;color:var(--ink-2);margin-top:1px}
-.sched-block.type-class{background:var(--blue-soft);border-color:var(--blue-2)}
-.sched-block.type-study{background:var(--violet-soft);border-color:var(--violet)}
-.sched-block.type-fitness{background:var(--coral-soft);border-color:var(--coral)}
-.sched-block.type-rest{background:var(--green-soft);border-color:var(--green)}
-.sched-block.done{opacity:.6}
-.sched-block.done .t s{color:var(--ink-3)}
-.sched-block .conflict-flag{position:absolute;top:5px;right:7px;font-size:10px;color:#a8760a}
-[data-theme="dark"] .sched-block .conflict-flag{color:var(--amber)}
-
-/* 日程：周视图 */
-.sched-week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
-.sched-wcol{min-width:0}
-.sched-wcol .head{font-size:11.5px;font-weight:800;text-align:center;padding:6px 2px;border-radius:8px;background:var(--surface-2);color:var(--ink-2);margin-bottom:6px}
-.sched-wcol.today .head{background:var(--blue);color:#fff}
-.sched-wblock{font-size:11px;padding:5px 7px;border-radius:7px;margin-bottom:4px;border:1px solid var(--line-2);background:var(--surface);cursor:pointer;overflow:hidden}
-.sched-wblock .bt{font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sched-wblock .bs{color:var(--ink-3);font-size:10px}
-.sched-wblock.type-class{background:var(--blue-soft)}
-.sched-wblock.type-study{background:var(--violet-soft)}
-.sched-wblock.type-fitness{background:var(--coral-soft)}
-.sched-wblock.type-rest{background:var(--green-soft)}
-.sched-wblock.done{opacity:.55}
-
 /* 复盘 */
 .review-field{margin-bottom:14px}
 .review-field label{display:block;font-size:13px;font-weight:700;color:var(--ink-2);margin-bottom:6px}
@@ -640,18 +615,59 @@ dialog[open]{animation:dlgIn .28s var(--ease)}
     min-height:var(--nav-h);justify-content:center;position:relative;
   }
   .nav-item svg{width:20px;height:20px}
-  .nav-item.active{color:var(--blue)}
-  .nav-item.active::after{left:50%;right:auto;transform:translateX(-50%);bottom:2px;width:26px;height:3px;border-radius:3px}
   .nav-item .badge{position:absolute;top:4px;right:calc(50% - 20px)}
-  .toast{bottom:calc(var(--nav-h) + 12px)}
+  .toast{bottom:calc(var(--nav-h) + 22px)}
+
+  /* Liquid Glass 悬浮导航（iOS 26 风格） */
+  .nav{
+    position:fixed;left:50%;bottom:calc(10px + env(safe-area-inset-bottom));transform:translateX(-50%);
+    width:calc(100% - 24px);max-width:440px;
+    margin:0;padding:6px;gap:0;justify-content:space-around;
+    border-radius:28px;
+    background:rgba(255,255,255,.42);
+    border:1px solid rgba(255,255,255,.65);
+    backdrop-filter:blur(26px) saturate(180%);
+    -webkit-backdrop-filter:blur(26px) saturate(180%);
+    box-shadow:0 12px 36px rgba(20,24,40,.16),inset 0 1px 0 rgba(255,255,255,.9),inset 0 -1px 0 rgba(255,255,255,.35);
+    overflow:visible;
+  }
+  /* Chrome：SVG 折射增强（真液体感），其余浏览器保持上面的 blur 降级 */
+  @supports (backdrop-filter:url(#lg-glass)){
+    .nav{
+      backdrop-filter:url(#lg-glass) saturate(180%);
+      -webkit-backdrop-filter:url(#lg-glass) saturate(180%);
+      background:rgba(255,255,255,.3);
+    }
+  }
+  [data-theme="dark"] .nav{
+    background:rgba(24,29,48,.52);
+    border-color:rgba(255,255,255,.14);
+    box-shadow:0 12px 36px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.2),inset 0 -1px 0 rgba(255,255,255,.06);
+  }
+  @supports (backdrop-filter:url(#lg-glass)){
+    [data-theme="dark"] .nav{background:rgba(24,29,48,.4)}
+  }
+  .nav-pill{
+    top:6px;height:calc(100% - 12px);
+    background:linear-gradient(135deg,rgba(255,255,255,.85),rgba(255,255,255,.5));
+    border-color:rgba(255,255,255,.95);
+    box-shadow:0 3px 12px rgba(20,24,40,.12),inset 0 1px 0 rgba(255,255,255,1),inset 0 -1px 0 rgba(255,255,255,.5);
+  }
+  [data-theme="dark"] .nav-pill{
+    background:linear-gradient(135deg,rgba(255,255,255,.22),rgba(255,255,255,.08));
+    border-color:rgba(255,255,255,.22);
+    box-shadow:0 3px 12px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.28);
+  }
+  .nav-item{
+    flex:1;flex-direction:column;gap:3px;padding:8px 2px;font-size:10.5px;border-radius:20px;
+    min-height:var(--nav-h);justify-content:center;position:relative;
+  }
 
   .card{padding:15px;border-radius:14px}
   .countdown{flex-wrap:wrap}
   .countdown .num{font-size:42px}
   .hello .big{font-size:20px}
   .ex-grid{grid-template-columns:1fr}
-  .sched-week{grid-template-columns:repeat(7,1fr);gap:3px}
-  .sched-wblock{font-size:10px;padding:4px 5px}
   .hist-date{width:78px}
   .hist-note{display:none}
   .hbar-name{width:72px;font-size:12px}
@@ -659,13 +675,6 @@ dialog[open]{animation:dlgIn .28s var(--ease)}
   .date-line{display:none}
   .focus-task{flex-wrap:wrap}
   .focus-task .ops{width:100%;justify-content:flex-end}
-  .sched-hours{margin-left:48px}
-  .sched-hour .lab{left:-48px;width:40px}
-  .timeline{padding-left:48px}
-  .timeline::before{left:37px}
-  .tl-item .time{left:-48px;width:38px;font-size:11px}
-  .tl-item .dot{left:-15px}
-  .tl-nowline{margin-left:48px}
 }
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important}
@@ -701,8 +710,9 @@ dialog[open]{animation:dlgIn .28s var(--ease)}
     </div>
   </header>
 
-  <!-- 导航（桌面顶部 / 移动底部） -->
+  <!-- 导航（桌面顶部 / 移动底部，Liquid Glass） -->
   <nav class="nav" id="nav" aria-label="主导航">
+    <span class="nav-pill" id="navPill" aria-hidden="true"></span>
     <button class="nav-item active" data-view="today" type="button">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l9-9 9 9"/><path d="M5 10v10h14V10"/></svg>
       <span>今日</span>
@@ -719,10 +729,6 @@ dialog[open]{animation:dlgIn .28s var(--ease)}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5h11v11h-11z"/><path d="M2 9v6M22 9v6M6.5 2v4M17.5 2v4M6.5 18v4M17.5 18v4"/></svg>
       <span>健身</span>
     </button>
-    <button class="nav-item" data-view="schedule" type="button">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-      <span>日程</span>
-    </button>
     <button class="nav-item" data-view="review" type="button">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
       <span>复盘</span>
@@ -735,7 +741,6 @@ dialog[open]{animation:dlgIn .28s var(--ease)}
     <section class="view" id="view-tasks" role="tabpanel" aria-label="任务" hidden></section>
     <section class="view" id="view-study" role="tabpanel" aria-label="学习" hidden></section>
     <section class="view" id="view-fitness" role="tabpanel" aria-label="健身" hidden></section>
-    <section class="view" id="view-schedule" role="tabpanel" aria-label="日程" hidden></section>
     <section class="view" id="view-review" role="tabpanel" aria-label="复盘" hidden></section>
   </main>
 </div>
@@ -745,6 +750,11 @@ dialog[open]{animation:dlgIn .28s var(--ease)}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <input type="file" id="fileImport" accept=".json,application/json" style="display:none">
+
+<!-- Liquid Glass 折射滤镜（Chrome 生效，其余浏览器走 CSS blur 降级） -->
+<svg width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true" color-interpolation-filters="sRGB">
+  <defs id="lg-defs"></defs>
+</svg>
 
 <script>
 
@@ -1950,10 +1960,8 @@ const TodayView = {
     el.append(
       this.heroSection(greet, t),
       this.focusSection(ts),
-      this.timelineSection(ts),
       this.statsSection(ts)
     );
-    this.renderTimelineInto(el, ts);
     this.fillSummary(ts);
   },
 
@@ -2047,56 +2055,6 @@ const TodayView = {
     return card;
   },
 
-  /* 4.3 今日时间轴 */
-  timelineSection(ts) {
-    const card = UI.h("div", { class: "card" },
-      UI.h("div", { class: "card-title" },
-        UI.h("span", { class: "bar", style: "background:var(--violet)" }), "今日时间轴",
-        UI.h("span", { class: "extra" },
-          UI.h("button", { class: "btn small", type: "button", onclick: () => App.switchView("schedule") }, "完整日程 →")))
-    );
-    const wrap = UI.h("div", { id: "todayTimeline", class: "timeline" });
-    card.append(wrap);
-    return card;
-  },
-
-  renderTimelineInto(root, ts) {
-    const wrap = root.querySelector("#todayTimeline");
-    if (!wrap) return;
-    const blocks = Store.blocksOf(ts);
-    const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
-    wrap.innerHTML = "";
-    if (!blocks.length) {
-      wrap.append(UI.empty("今天还没有安排时间块", "在「日程」里添加课程、学习或健身时间块", UI.h("button", { class: "btn small", type: "button", onclick: () => App.switchView("schedule") }, "去安排")));
-      return;
-    }
-    // 当前时间线
-    const first = blocks[0];
-    if (nowMin > toMin(first.start)) {
-      wrap.append(UI.h("div", { class: "tl-nowline" }, UI.h("span", {}, `${pad(Math.floor(nowMin / 60))}:${pad(nowMin % 60)} 现在`)));
-    }
-    blocks.forEach(b => {
-      const startM = toMin(b.start), endM = toMin(b.end);
-      const done = b.done;
-      const now = nowMin >= startM && nowMin < endM;
-      const missed = !done && endM < nowMin;
-      const item = UI.h("div", { class: `tl-item ${done ? "done" : now ? "now" : missed ? "missed" : ""}` },
-        UI.h("span", { class: "time" }, b.start),
-        UI.h("span", { class: "dot" }),
-        UI.h("div", { class: "body" },
-          UI.h("div", { class: "title" },
-            done ? UI.h("s", {}, b.title) : UI.h("span", {}, b.title),
-            UI.h("span", { class: `tag tag-type-${b.type}` }, BLOCK_TYPE_LABEL(b.type))),
-          UI.h("div", { class: "sub" }, `${b.start}–${b.end}${b.taskId ? " · 关联任务" : ""}`)),
-        UI.h("div", { class: "ops" },
-          !done ? UI.h("button", { class: "mini-btn", type: "button", title: "标记完成", "aria-label": "标记完成", onclick: () => { b.done = true; Store.touch(b); Store.save(); TodayView.render(); UI.toast("已完成"); } },
-            UI.h("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2.4", "stroke-linecap": "round" }, UI.h("polyline", { points: "20 6 9 17 4 12" }))) : null,
-          UI.h("button", { class: "mini-btn", type: "button", title: "编辑", "aria-label": "编辑时间块", onclick: () => ScheduleView.editBlock(b) },
-            UI.h("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2.2", "stroke-linecap": "round" }, UI.h("path", { d: "M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"}))))
-      );
-      wrap.append(item);
-    });
-  },
 
   /* 4.4 核心数据概览 */
   statsSection(ts) {
@@ -2872,255 +2830,6 @@ const FitnessView = {
 };
 
 
-/* ================= src/js/views/schedule.js ================= */
-/* ================= 视图：日程 ================= */
-"use strict";
-
-const ScheduleView = {
-  mode: "day",        // day | week
-  dayOffset: 0,       // 相对今天的天数
-
-  curDate() { const d = today(); d.setDate(d.getDate() + this.dayOffset); return dstr(d); },
-
-  render() {
-    const el = document.getElementById("view-schedule");
-    el.innerHTML = "";
-    el.append(this.toolbar(), this.mode === "day" ? this.dayView() : this.weekView(), this.unscheduledCard());
-    if (this.mode === "day") this.renderDayBlocks();
-  },
-
-  toolbar() {
-    const d = parseDate(this.curDate());
-    const label = this.dayOffset === 0 ? "今天" : this.dayOffset === 1 ? "明天" : this.dayOffset === -1 ? "昨天" :
-      `${d.getMonth() + 1}月${d.getDate()}日 ${WEEK_CN[d.getDay()]}`;
-    return UI.h("div", { class: "card" },
-      UI.h("div", { class: "row", style: "justify-content:space-between" },
-        UI.h("div", { class: "row" },
-          UI.h("button", { class: "btn small", type: "button", "aria-label": "前一天", onclick: () => { this.dayOffset--; this.render(); } }, "←"),
-          UI.h("strong", { style: "font-size:15px;min-width:110px;text-align:center" }, label),
-          UI.h("button", { class: "btn small", type: "button", "aria-label": "后一天", onclick: () => { this.dayOffset++; this.render(); } }, "→"),
-          this.dayOffset !== 0 ? UI.h("button", { class: "btn small ghost", type: "button", onclick: () => { this.dayOffset = 0; this.render(); } }, "回到今天") : null),
-        UI.h("div", { class: "row" },
-          UI.h("button", { class: "chip" + (this.mode === "day" ? " active" : ""), type: "button", onclick: () => { this.mode = "day"; this.render(); } }, "日视图"),
-          UI.h("button", { class: "chip" + (this.mode === "week" ? " active" : ""), type: "button", onclick: () => { this.mode = "week"; this.render(); } }, "周视图"),
-          UI.h("button", { class: "btn primary small", type: "button", onclick: () => this.editBlock(null) }, "+ 新建时间块"))
-      )
-    );
-  },
-
-  /* ---- 日视图：时间网格 ---- */
-  dayView() {
-    return UI.h("div", { class: "card" },
-      UI.h("div", { class: "card-title" }, UI.h("span", { class: "bar", style: "background:var(--blue)" }), "时间安排", UI.h("span", { class: "extra", id: "dayBlockCount" })),
-      UI.h("div", { class: "sched-day" }, UI.h("div", { class: "sched-hours", id: "schedHours" }))
-    );
-  },
-
-  renderDayBlocks() {
-    const wrap = document.getElementById("schedHours");
-    if (!wrap) return;
-    const ds = this.curDate();
-    const blocks = Store.blocksOf(ds);
-    const count = document.getElementById("dayBlockCount");
-    if (count) count.textContent = `${blocks.length} 个时间块`;
-    // 小时刻度 6:00 - 24:00
-    wrap.innerHTML = "";
-    for (let h = 6; h <= 23; h++) {
-      wrap.append(UI.h("div", { class: "sched-hour" }, UI.h("span", { class: "lab" }, `${pad(h)}:00`)));
-    }
-    const conflicts = this.findConflicts(blocks);
-    const nowMin = new Date().getHours() * 60 + new Date().getMinutes();
-    const isToday = ds === todayStr();
-    blocks.forEach(b => {
-      const startM = toMin(b.start), endM = Math.max(toMin(b.end), startM + 15);
-      const top = (startM - 6 * 60) / (18 * 60) * 100;
-      const height = Math.max(4, (endM - startM) / (18 * 60) * 100);
-      const el = UI.h("div", {
-        class: `sched-block type-${b.type}` + (b.done ? " done" : ""),
-        style: `top:${top}%;height:${height}%`,
-        role: "button", tabindex: "0",
-        "aria-label": `${b.title}，${b.start} 到 ${b.end}`,
-        onclick: () => this.editBlock(b),
-        onkeydown: e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); this.editBlock(b); } }
-      },
-      UI.h("div", { class: "t" }, b.done ? UI.h("s", {}, b.title) : UI.h("span", {}, b.title), UI.h("span", { class: `tag tag-type-${b.type}` }, BLOCK_TYPE_LABEL(b.type))),
-      UI.h("div", { class: "s" }, `${b.start}–${b.end}${isToday && nowMin >= startM && nowMin < endM ? " · 进行中" : ""}`)
-      );
-      if (conflicts.has(b.id)) {
-        el.append(UI.h("span", { class: "conflict-flag", title: "与其他时间块重叠" }, "⚠"));
-      }
-      wrap.append(el);
-    });
-  },
-
-  /* 冲突检测：同一时间段重叠 */
-  findConflicts(blocks) {
-    const set = new Set();
-    const sorted = blocks.slice().sort((a, b) => toMin(a.start) - toMin(b.start));
-    for (let i = 0; i < sorted.length; i++) {
-      for (let j = i + 1; j < sorted.length; j++) {
-        if (toMin(sorted[j].start) < toMin(sorted[i].end)) { set.add(sorted[i].id); set.add(sorted[j].id); }
-        else break;
-      }
-    }
-    return set;
-  },
-
-  /* ---- 周视图 ---- */
-  weekView() {
-    const [w0, w1] = weekRange();
-    const card = UI.h("div", { class: "card" },
-      UI.h("div", { class: "card-title" },
-        UI.h("span", { class: "bar", style: "background:var(--violet)" }), "本周安排",
-        UI.h("span", { class: "extra" }, `${w0.slice(5).replace("-", "/")} – ${w1.slice(5).replace("-", "/")}`))
-    );
-    const grid = UI.h("div", { class: "sched-week" });
-    for (let i = 0; i < 7; i++) {
-      const d = parseDate(w0); d.setDate(d.getDate() + i);
-      const ds = dstr(d);
-      const col = UI.h("div", { class: "sched-wcol" + (ds === todayStr() ? " today" : "") },
-        UI.h("div", { class: "head" }, `${WEEK_SHORT[d.getDay()]} ${d.getDate()}`));
-      const blocks = Store.blocksOf(ds);
-      if (!blocks.length) col.append(UI.h("div", { style: "font-size:10.5px;color:var(--ink-3);text-align:center;padding:8px 0" }, "—"));
-      blocks.forEach(b => {
-        col.append(UI.h("div", {
-          class: `sched-wblock type-${b.type}` + (b.done ? " done" : ""),
-          role: "button", tabindex: "0", title: `${b.title} ${b.start}–${b.end}（点击编辑）`,
-          onclick: () => { this.dayOffset = dayDiff(todayStr(), ds); this.mode = "day"; this.render(); setTimeout(() => this.editBlock(b), 50); },
-          onkeydown: e => { if (e.key === "Enter") e.target.click(); }
-        },
-        UI.h("div", { class: "bt" }, b.title),
-        UI.h("div", { class: "bs" }, `${b.start}–${b.end}`)));
-      });
-      grid.append(col);
-    }
-    card.append(grid);
-    return card;
-  },
-
-  /* ---- 未安排任务 ---- */
-  unscheduledCard() {
-    const card = UI.h("div", { class: "card" },
-      UI.h("div", { class: "card-title" }, UI.h("span", { class: "bar", style: "background:var(--amber)" }), "未安排时间的任务", UI.h("span", { class: "extra" }, "把任务排进时间轴"))
-    );
-    const scheduledIds = new Set(Store.state.blocks.filter(b => !b.deleted && b.taskId).map(b => b.taskId));
-    const unscheduled = Store.openTasks().filter(t => !scheduledIds.has(t.id));
-    if (!unscheduled.length) {
-      card.append(UI.empty("所有任务都已安排或暂无待办", "新建任务后可从这里排入日程"));
-      return card;
-    }
-    const list = UI.h("div", { class: "task-list" });
-    unscheduled.slice(0, 8).forEach(t => {
-      list.append(UI.h("div", { class: "task" },
-        UI.h("div", { class: "body" },
-          UI.h("div", { class: "t-title" }, t.title),
-          UI.h("div", { class: "t-meta" },
-            UI.h("span", { class: "tag " + (t.subjectId ? "tag-subject" : "tag-due") }, Store.subjectName(t.subjectId) || "未分类"),
-            t.due ? UI.h("span", { class: `tag tag-due ${dueCls(t.due, false)}` }, fmtDue(t.due)) : null,
-            t.estMin ? UI.h("span", { class: "tag tag-due" }, `预计 ${fmtMin(t.estMin)}`) : null)),
-        UI.h("div", { class: "ops" },
-          UI.h("button", { class: "btn small", type: "button", onclick: () => this.editBlock(null, t) }, "安排时间")))
-      );
-    });
-    card.append(list);
-    return card;
-  },
-
-  /* ---- 新建 / 编辑时间块 ---- */
-  editBlock(b, presetTask) {
-    const isNew = !b;
-    const ds = b ? b.date : this.curDate();
-    UI.modal({
-      title: isNew ? "新建时间块" : "编辑时间块",
-      submitText: "保存",
-      body: (box) => {
-        const title = UI.input({ value: b ? b.title : (presetTask ? presetTask.title : ""), placeholder: "标题，例如：高数复习", required: true });
-        const type = UI.select(BLOCK_TYPES.map(x => ({ value: x.id, label: x.name })), b ? b.type : (presetTask ? "study" : "study"));
-        const date = UI.input({ type: "date", value: ds });
-        const start = UI.input({ type: "time", value: b ? b.start : "09:00" });
-        const end = UI.input({ type: "time", value: b ? b.end : "10:30" });
-        const open = Store.openTasks();
-        const taskSel = UI.select(
-          [{ value: "", label: "不关联任务" }].concat(open.map(t => ({ value: t.id, label: t.title }))),
-          b ? (b.taskId || "") : (presetTask ? presetTask.id : "")
-        );
-        const done = UI.h("input", { type: "checkbox" });
-        done.checked = b ? !!b.done : false;
-        done.style.width = "18px"; done.style.height = "18px";
-        box.append(
-          UI.field("标题", title),
-          UI.field("类型", type),
-          UI.field("日期", date),
-          UI.h("div", { class: "row" }, UI.h("div", { class: "grow" }, UI.field("开始时间", start)), UI.h("div", { class: "grow" }, UI.field("结束时间", end))),
-          UI.field("关联任务", taskSel, "关联后，完成时间块不会自动完成任务，需在任务列表中确认"),
-          UI.h("div", { class: "field" }, UI.h("label", { class: "field-label" }, "已完成"), done)
-        );
-        box._get = () => ({ title, type, date, start, end, taskSel, done });
-      },
-      onSubmit: (box, close) => {
-        const f = box._get;
-        if (!f.title.value.trim()) { UI.toast("标题不能为空"); return false; }
-        if (!f.date.value || !f.start.value || !f.end.value) { UI.toast("请填写日期与起止时间"); return false; }
-        if (toMin(f.end.value) <= toMin(f.start.value)) { UI.toast("结束时间必须晚于开始时间"); return false; }
-        const rec = {
-          id: isNew ? uid() : b.id,
-          title: f.title.value.trim(),
-          type: f.type.value,
-          date: f.date.value,
-          start: f.start.value,
-          end: f.end.value,
-          taskId: f.taskSel.value || null,
-          done: f.done.checked,
-          createdAt: isNew ? Date.now() : b.createdAt,
-          updatedAt: Date.now(),
-          deleted: false
-        };
-        // 冲突提醒（允许用户确认后保留）
-        const others = Store.blocksOf(rec.date).filter(x => x.id !== rec.id);
-        const conflict = others.some(x => toMin(x.start) < toMin(rec.end) && toMin(rec.start) < toMin(x.end));
-        const save = () => {
-          if (isNew) Store.state.blocks.push(rec);
-          else Object.assign(b, rec);
-          Store.save();
-          this.render();
-          if (App.curView === "today") TodayView.render();
-          UI.toast(isNew ? "时间块已创建" : "已保存");
-        };
-        if (conflict) {
-          UI.modal({
-            title: "时间重叠提醒",
-            body: el => el.append(UI.h("p", { class: "modal-text" }, `「${rec.title}」（${rec.start}–${rec.end}）与当天其他时间块重叠。如果是有意安排的（例如边听音频边刷题），可以保留；否则请返回修改。`)),
-            submitText: "仍然保存",
-            onSubmit: () => save()
-          });
-          // 关闭当前编辑框，保留冲突确认框
-          setTimeout(() => close(), 0);
-          return;
-        }
-        save();
-      }
-    });
-    if (!isNew) {
-      // 删除入口
-      const dlg = document.querySelector("dialog.modal");
-      if (dlg) {
-        const del = UI.h("button", { class: "btn danger", type: "button", style: "margin-right:auto" }, "删除时间块");
-        del.addEventListener("click", async () => {
-          const ok = await UI.confirmDanger("删除时间块", `确定删除「${b.title}」吗？关联的任务不会被删除。`, "删除");
-          if (!ok) return;
-          b.deleted = true; Store.touch(b); Store.save();
-          document.querySelectorAll("dialog.modal").forEach(d => d.remove());
-          this.render();
-          if (App.curView === "today") TodayView.render();
-          UI.toast("已删除");
-        });
-        dlg.querySelector(".modal-actions").prepend(del);
-      }
-    }
-  }
-};
-
-
 /* ================= src/js/views/review.js ================= */
 /* ================= 视图：复盘 ================= */
 "use strict";
@@ -3662,13 +3371,14 @@ const App = {
     Theme.init();
     Sync.init();
     Timer.restore();
+    this.initLiquidGlass();
     this.bindNav();
     this.bindTopbar();
     this.initBg();
     this.initScrollFx();
     this.renderAll();
-    // 每分钟刷新一次时间轴「现在」标记
-    setInterval(() => { if (this.curView === "today") TodayView.renderTimelineInto(document.getElementById("view-today"), todayStr()); }, 60000);
+    // 窗口尺寸变化时重定位 pill
+    window.addEventListener("resize", () => this.moveNavPill());
   },
 
   bindNav() {
@@ -3702,21 +3412,71 @@ const App = {
 
   switchView(v) {
     this.curView = v;
-    ["today", "tasks", "study", "fitness", "schedule", "review", "settings"].forEach(x => {
+    ["today", "tasks", "study", "fitness", "review", "settings"].forEach(x => {
       const el = document.getElementById("view-" + x);
       if (!el) return;
       el.classList.toggle("show", x === v);
       el.hidden = x !== v;
     });
     document.querySelectorAll(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.view === v));
+    this.moveNavPill();
     window.scrollTo({ top: 0, behavior: "instant" });
     if (v === "today") TodayView.render();
     if (v === "tasks") { TasksView.render(); }
     if (v === "study") StudyView.render();
     if (v === "fitness") FitnessView.render();
-    if (v === "schedule") ScheduleView.render();
     if (v === "review") ReviewView.render();
     if (v === "settings") SettingsView.render();
+  },
+
+  /* Liquid Glass 导航：滑动 pill 跟随激活项 */
+  moveNavPill() {
+    const pill = document.getElementById("navPill");
+    const active = document.querySelector(".nav-item.active");
+    if (!pill || !active) return;
+    const r = active.getBoundingClientRect();
+    const nr = active.parentElement.getBoundingClientRect();
+    pill.style.width = r.width + "px";
+    pill.style.opacity = "1";
+    pill.style.transform = `translateX(${r.left - nr.left}px)`;
+  },
+
+  /* 生成 SVG 折射滤镜（feImage 位移贴图 + feDisplacementMap），参考 archisvaze/liquid-glass
+   * 仅 Chrome 生效（@supports 检测），Firefox/Safari 自动降级为 CSS blur */
+  initLiquidGlass() {
+    const defs = document.getElementById("lg-defs");
+    if (!defs) return;
+    try {
+      const W = 440, H = 84, R = 26;
+      const c = document.createElement("canvas");
+      c.width = W; c.height = H;
+      const ctx = c.getContext("2d");
+      const img = ctx.createImageData(W, H);
+      for (let y = 0; y < H; y++) {
+        for (let x = 0; x < W; x++) {
+          // 越靠近左右边缘与圆角，位移越大（模拟玻璃边缘厚度折射）
+          const dx = Math.min(x + 1, W - x);
+          const dy = Math.min(y + 1, H - y);
+          const edgeX = Math.min(1, dx / (R * 1.7));
+          const edgeY = Math.min(1, dy / (R * 1.0));
+          const edge = Math.min(edgeX, edgeY);
+          const s = Math.pow(1 - edge, 1.6);
+          const i = (y * W + x) * 4;
+          img.data[i] = 128 + s * 100;      // R 通道 → 水平位移
+          img.data[i + 1] = 128 + s * 26;   // G 通道 → 垂直微位移
+          img.data[i + 2] = 128;
+          img.data[i + 3] = 255;
+        }
+      }
+      ctx.putImageData(img, 0, 0);
+      const url = c.toDataURL();
+      defs.innerHTML = `<filter id="lg-glass" x="0%" y="0%" width="100%" height="100%" color-interpolation-filters="sRGB">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="b"/>
+        <feImage href="${url}" x="0" y="0" width="100%" height="100%" result="dm" preserveAspectRatio="none"/>
+        <feDisplacementMap in="b" in2="dm" scale="14" xChannelSelector="R" yChannelSelector="G" result="d"/>
+        <feColorMatrix in="d" type="saturate" values="1.55"/>
+      </filter>`;
+    } catch (e) { /* 降级：无滤镜时 CSS blur 仍生效 */ }
   },
 
   renderAll() {
