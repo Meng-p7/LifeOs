@@ -12,7 +12,6 @@ const App = {
     this.initLiquidGlass();
     this.bindNav();
     this.bindTopbar();
-    this.initBg();
     this.initScrollFx();
     this.renderAll();
     // 窗口尺寸变化时重定位 pill
@@ -157,44 +156,6 @@ const App = {
     });
   },
 
-  /* ---- 动态背景（低强度，不干扰操作） ---- */
-  initBg() {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const cv = document.getElementById("bgCanvas");
-    const ctx = cv.getContext("2d");
-    let W, H, DPR;
-    const resize = () => {
-      DPR = Math.min(window.devicePixelRatio || 1, 2);
-      W = window.innerWidth; H = window.innerHeight;
-      cv.width = W * DPR; cv.height = H * DPR;
-      cv.style.width = W + "px"; cv.style.height = H + "px";
-      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-    };
-    resize();
-    window.addEventListener("resize", resize);
-    const blobs = [
-      { x: .15, y: .18, r: .42, vx: .00022, vy: .00016, c: [59, 110, 245], a: .10 },
-      { x: .85, y: .25, r: .36, vx: -.00018, vy: .00021, c: [123, 92, 240], a: .09 },
-      { x: .55, y: .85, r: .44, vx: .00015, vy: -.00019, c: [255, 90, 122], a: .07 },
-      { x: .25, y: .7, r: .3, vx: .0002, vy: .00014, c: [23, 178, 106], a: .06 }
-    ].map(b => ({ ...b, x: b.x * W, y: b.y * H, r: b.r * Math.max(W, H) }));
-    let t = 0;
-    (function draw() {
-      t++;
-      ctx.clearRect(0, 0, W, H);
-      blobs.forEach(b => {
-        b.x += b.vx * W * .05; b.y += b.vy * H * .05;
-        if (b.x < -b.r * .6) b.x = W + b.r * .6; if (b.x > W + b.r * .6) b.x = -b.r * .6;
-        if (b.y < -b.r * .6) b.y = H + b.r * .6; if (b.y > H + b.r * .6) b.y = -b.r * .6;
-        const g = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r);
-        g.addColorStop(0, `rgba(${b.c[0]},${b.c[1]},${b.c[2]},${b.a})`);
-        g.addColorStop(1, `rgba(${b.c[0]},${b.c[1]},${b.c[2]},0)`);
-        ctx.fillStyle = g;
-        ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill();
-      });
-      requestAnimationFrame(draw);
-    })();
-  },
 
   initScrollFx() {
     const bar = document.getElementById("scrollProgress");

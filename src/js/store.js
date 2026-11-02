@@ -92,6 +92,8 @@ function migrateV1(raw) {
       if (!merged[k] || typeof merged[k] !== "object") merged[k] = d[k];
     });
     merged.study = normalizeStudy(raw.study);
+    // 任务补 spentMin（累计投入分钟），用于学习与任务打通
+    merged.tasks = merged.tasks.map(t => ({ spentMin: 0, ...t }));
     return merged;
   }
 

@@ -12,10 +12,59 @@ const TodayView = {
     el.innerHTML = "";
     el.append(
       this.heroSection(greet, t),
+      this.nextActionCard(ts),
       this.focusSection(ts),
       this.statsSection(ts)
     );
     this.fillSummary(ts);
+  },
+
+  /* 下一步该做什么：优先正在计时 → 逾期任务 → 今天到期 → 最高优先级 → 学习 */
+  nextActionCard(ts) {
+    const pri = { high: 0, normal: 1, low: 2 };
+    const byPri = (a, b) => (pri[a.priority] ?? 1) - (pri[b.priority] ?? 1);
+
+    // 1. 正在计时
+    if (Timer.active) {
+      const item = Store.studyItems().find(x => x.id === Timer.active.itemId);
+      return UI.h("div", { class: "next-action" },
+        UI.h("div", { class: "na-label" }, "正在计时"),
+        UI.h("div", { class: "na-body" },
+          UI.h("div", { class: "na-title" }, item ? item.title : "计时中"),
+          UI.h("div", { class: "na-sub" }, Timer.isRunning() ? "计时进行中，保持专注" : "已暂停")),
+        UI.h("div", { class: "na-ops" },
+          UI.h("button", { class: "btn small primary", type: "button", onclick: () => App.switchView("study") }, "回到计时")));
+    }
+
+    const open = Store.openTasks();
+    const overdue = open.filter(t => t.due && dayDiff(ts, t.due) < 0).sort(byPri);
+    const dueToday = open.filter(t => t.due === ts).sort(byPri);
+    const pool = overdue.length ? overdue : (dueToday.length ? dueToday : open.slice().sort(byPri));
+
+    // 2. 没有任务 → 引导学习
+    if (!pool.length) {
+      return UI.h("div", { class: "next-action" },
+        UI.h("div", { class: "na-label" }, "下一步"),
+        UI.h("div", { class: "na-body" },
+          UI.h("div", { class: "na-title" }, "今天没有待办"),
+          UI.h("div", { class: "na-sub" }, "去学习页挑一件事，开始一段计时")),
+        UI.h("div", { class: "na-ops" },
+          UI.h("button", { class: "btn small primary", type: "button", onclick: () => App.switchView("study") }, "开始学习")));
+    }
+
+    const t = pool[0];
+    const tagText = t.due && dayDiff(ts, t.due) < 0 ? `逾期 ${-dayDiff(ts, t.due)} 天` : t.due === ts ? "今天到期" : PRIORITY_LABEL(t.priority);
+    const tagCls = t.due && dayDiff(ts, t.due) >= 0 ? "today" : "over";
+    return UI.h("div", { class: "next-action" },
+      UI.h("div", { class: "na-label" }, "下一步"),
+      UI.h("div", { class: "na-body" },
+        UI.h("div", { class: "na-title" }, t.title),
+        UI.h("div", { class: "na-sub" },
+          UI.h("span", { class: "tag tag-due " + tagCls }, tagText),
+          t.spentMin ? UI.h("span", { style: "margin-left:6px" }, `已投入 ${fmtMin(t.spentMin)}`) : null)),
+      UI.h("div", { class: "na-ops" },
+        UI.h("button", { class: "btn small primary", type: "button", onclick: () => TasksView.startTimerForTask(t) }, "开始计时"),
+        UI.h("button", { class: "btn small", type: "button", onclick: () => { t.done = true; t.doneAt = Date.now(); Store.touch(t); Store.save(); TodayView.render(); TasksView.renderCounts(); UI.toast(t.spentMin ? `完成 ✓ 累计投入 ${fmtMin(t.spentMin)}` : "完成一项 ✓"); } }, "完成")));
   },
 
   /* 今日摘要（DOM 挂载后填充） */
@@ -23,7 +72,7 @@ const TodayView = {
     const summary = document.getElementById("todaySummary");
     if (!summary) return;
     const open = Store.openTasks();
-    const overdue = open.filter(x => x.due && dayDiff(ts, x.due) > 0);
+    const overdue = open.filter(x => x.due && dayDiff(ts, x.due) < 0);
     const parts = [`待完成 ${open.length} 项`];
     if (overdue.length) parts.push(`逾期 ${overdue.length} 项`);
     summary.textContent = parts.join(" · ");
@@ -69,12 +118,12 @@ const TodayView = {
   /* 4.2 今日重点 */
   focusSection(ts) {
     const open = Store.openTasks();
-    const dueToday = open.filter(x => x.due && dayDiff(ts, x.due) <= 0);
-    const overdue = open.filter(x => x.due && dayDiff(ts, x.due) > 0);
+    const dueToday = open.filter(x => x.due === ts);
+    const overdue = open.filter(x => x.due && dayDiff(ts, x.due) < 0);
     const pri = { high: 0, normal: 1, low: 2 };
     const focus = open.slice().sort((a, b) => {
-      const ao = a.due && dayDiff(ts, a.due) > 0 ? 1 : 0, bo = b.due && dayDiff(ts, b.due) > 0 ? 1 : 0;
-      if (ao !== bo) return ao - bo;
+      const ao = a.due && dayDiff(ts, a.due) < 0 ? 1 : 0, bo = b.due && dayDiff(ts, b.due) < 0 ? 1 : 0;
+      if (ao !== bo) return bo - ao;   // 逾期优先排前
       if (a.due !== b.due) return a.due ? (b.due ? (a.due < b.due ? -1 : 1) : -1) : 1;
       return pri[a.priority] - pri[b.priority];
     }).slice(0, 3);

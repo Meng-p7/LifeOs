@@ -2,7 +2,7 @@
  * 用户自建每日事项 → 点开始计时 → 按天累计 → 当日饼图 + 每日统计 */
 "use strict";
 
-const ITEM_COLORS = ["var(--blue)", "var(--violet)", "var(--coral)", "var(--green)", "var(--amber)", "#0ea5e9", "#f43f5e", "#8b5cf6"];
+const ITEM_COLORS = ["var(--blue)", "var(--ink)", "var(--ink-2)", "var(--ink-3)", "#c9cbd0", "#dfe0e4", "#b4b7bd", "#9aa0a8"];
 
 const StudyView = {
   render() {
@@ -38,6 +38,11 @@ const StudyView = {
         UI.h("span", { class: "extra" }, running ? "进行中" : "已暂停")),
       UI.h("div", { class: "timer-running" },
         UI.h("div", { class: "timer-item-name" }, item ? item.title : "已删除的事项"),
+        (() => {
+          if (!item || !item.taskId) return null;
+          const t = Store.taskById(item.taskId);
+          return t && !t.deleted ? UI.h("div", { class: "timer-task-hint" }, `关联任务：${t.title}`) : null;
+        })(),
         UI.h("div", { class: "timer-big", id: "timerBig" }, fmtClock(Timer.elapsedMs() / 1000)),
         UI.h("div", { class: "timer-ops" },
           UI.h("button", { class: "btn", type: "button", onclick: () => { running ? Timer.pause() : Timer.resume(); this.render(); } }, running ? "暂停" : "继续"),
@@ -51,10 +56,21 @@ const StudyView = {
     const r = Timer.stop();
     if (!r) return;
     Store.studyAddMinutes(todayStr(), r.itemId, r.minutes);
+    // 打通任务：若该事项关联了任务，把时长累计到任务上
+    const item = Store.studyItems().find(x => x.id === r.itemId);
+    let taskTip = "";
+    if (item && item.taskId) {
+      const task = Store.taskById(item.taskId);
+      if (task && !task.deleted) {
+        task.spentMin = (task.spentMin || 0) + r.minutes;
+        Store.touch(task);
+        taskTip = `，已累计到「${task.title.slice(0, 8)}」`;
+      }
+    }
     Store.save();
     this.render();
     if (App.curView === "today") TodayView.render();
-    UI.toast(`已记录 ${r.minutes} 分钟`);
+    UI.toast(`已记录 ${r.minutes} 分钟${taskTip}`, 2600);
   },
 
   async discardTimer() {

@@ -73,9 +73,9 @@ const TasksView = {
     const cnt = f => Store.state.tasks.filter(f).length;
     const nums = {
       open: cnt(t => !t.deleted && !t.done),
-      today: cnt(t => !t.deleted && !t.done && t.due && dayDiff(ts, t.due) <= 0),
+      today: cnt(t => !t.deleted && !t.done && t.due === ts),
       week: cnt(t => !t.deleted && !t.done && t.due && t.due >= w0 && t.due <= w1),
-      over: cnt(t => !t.deleted && !t.done && t.due && dayDiff(ts, t.due) > 0),
+      over: cnt(t => !t.deleted && !t.done && t.due && dayDiff(ts, t.due) < 0),
       done: cnt(t => !t.deleted && t.done),
       all: cnt(t => !t.deleted)
     };
@@ -103,9 +103,9 @@ const TasksView = {
     let items = Store.state.tasks.filter(t => !t.deleted);
     if (this.filterSubj) items = items.filter(t => this.filterSubj === "__none" ? !t.subjectId : t.subjectId === this.filterSubj);
     if (this.filter === "open") items = items.filter(t => !t.done);
-    else if (this.filter === "today") items = items.filter(t => !t.done && t.due && dayDiff(ts, t.due) <= 0);
+    else if (this.filter === "today") items = items.filter(t => !t.done && t.due === ts);
     else if (this.filter === "week") items = items.filter(t => !t.done && t.due && t.due >= w0 && t.due <= w1);
-    else if (this.filter === "over") items = items.filter(t => !t.done && t.due && dayDiff(ts, t.due) > 0);
+    else if (this.filter === "over") items = items.filter(t => !t.done && t.due && dayDiff(ts, t.due) < 0);
     else if (this.filter === "done") items = items.filter(t => t.done);
     const pri = { high: 0, normal: 1, low: 2 };
     items.sort((a, b) => {
@@ -135,15 +135,35 @@ const TasksView = {
           UI.h("span", { class: "tag " + (t.subjectId ? "tag-subject" : "tag-due") }, Store.subjectName(t.subjectId) || "未分类"),
           t.due ? UI.h("span", { class: `tag tag-due ${dueCls(t.due, t.done)}` }, fmtDue(t.due)) : null,
           t.estMin ? UI.h("span", { class: "tag tag-due" }, `预计 ${fmtMin(t.estMin)}`) : null,
+          t.spentMin ? UI.h("span", { class: "tag tag-spent" }, `已投入 ${fmtMin(t.spentMin)}`) : null,
           t.done ? UI.h("span", { class: "tag tag-done" }, "已完成") : UI.h("span", { class: "tag tag-due" }, UI.h("i", { class: `pri-dot pri-${t.priority}` }), PRIORITY_LABEL(t.priority)))
       ),
       UI.h("div", { class: "ops" },
+        !t.done ? UI.h("button", { class: "mini-btn", type: "button", title: "开始计时", "aria-label": "为这个任务开始计时", onclick: () => this.startTimerForTask(t) },
+          UI.h("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2.2", "stroke-linecap": "round", "stroke-linejoin": "round" }, UI.h("circle", { cx: "12", cy: "12", r: "9" }), UI.h("polyline", { points: "12 8 12 12 15 14" }))) : null,
         compact ? null : UI.h("button", { class: "mini-btn", type: "button", title: "编辑", "aria-label": "编辑任务", onclick: () => this.edit(t) },
           UI.h("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2.2", "stroke-linecap": "round" }, UI.h("path", { d: "M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"}))),
         UI.h("button", { class: "mini-btn danger", type: "button", title: "删除", "aria-label": "删除任务", onclick: () => this.remove(t) },
           UI.h("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2.2", "stroke-linecap": "round" }, UI.h("path", { d: "M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"}))))
     );
     return row;
+  },
+
+  /* 为一个任务开始计时：自动匹配/创建同名学习事项并建立关联 */
+  startTimerForTask(t) {
+    if (Timer.active) { UI.toast("已有计时在进行，先去学习页结束它"); return; }
+    const short = t.title.trim().slice(0, 14);
+    let item = Store.state.study.items.find(i => i.taskId === t.id)
+            || Store.state.study.items.find(i => i.title === short);
+    if (!item) {
+      item = { id: uid(), title: short, taskId: t.id };
+      Store.state.study.items.push(item);
+    } else if (!item.taskId) {
+      item.taskId = t.id;
+    }
+    Store.state.study.updatedAt = Date.now();
+    Store.save();
+    if (Timer.start(item.id, t.title)) App.switchView("study");
   },
 
   toggle(t) {
@@ -153,7 +173,7 @@ const TasksView = {
     Store.save();
     this.render(); this.renderCounts();
     if (App.curView === "today") TodayView.render();
-    UI.toast(t.done ? "完成一项 ✓" : "已恢复为进行中");
+    UI.toast(t.done ? (t.spentMin ? `完成 ✓ 累计投入 ${fmtMin(t.spentMin)}` : "完成一项 ✓") : "已恢复为进行中");
   },
 
   async remove(t) {

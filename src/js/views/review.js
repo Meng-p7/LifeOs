@@ -72,7 +72,7 @@ const ReviewView = {
     const rec = Store.reviewOf(ts) || {};
     const studyMin = Store.studyMinutes(ts);
     const doneTasks = Store.state.tasks.filter(t => t.done && t.doneAt && dstr(new Date(t.doneAt)) === ts);
-    const overdue = Store.openTasks().filter(t => t.due && dayDiff(ts, t.due) > 0);
+    const overdue = Store.openTasks().filter(t => t.due && dayDiff(ts, t.due) < 0);
     const fitRec = Store.state.fitness[ts];
     const progress = [
       doneTasks.length ? `完成任务：${doneTasks.slice(0, 3).map(t => t.title).join("；")}` : "今日无已完成任务",
