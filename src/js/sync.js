@@ -53,18 +53,25 @@ const Sync = {
     }
   },
 
-  /* 登录（设置页调用） */
+  /* 登录（设置页调用）。注意：登录成功但同步失败（如表未建）时要区分提示 */
   async signIn(email, password) {
     if (!this.adapter) throw new Error("尚未配置云同步");
     this.setStatus("syncing");
     try {
       await this.adapter.signIn(email, password);
+    } catch (e) {
+      this.setStatus("error", this.friendlyError(e));
+      throw e;
+    }
+    try {
       await this.adapter.syncAfterLogin();
       this.setStatus("synced");
       return true;
     } catch (e) {
       this.setStatus("error", this.friendlyError(e));
-      throw e;
+      const err = new Error(this.friendlyError(e));
+      err.loggedIn = true;   // 已拿到会话，只是同步没成功
+      throw err;
     }
   },
 
@@ -94,13 +101,60 @@ const Sync = {
 
   /* 云端错误的人话提示 */
   friendlyError(e) {
-    if (e && (e.code === "PGRST205" || /Could not find the table/.test(e.message || ""))) {
-      return "云端数据表未创建：请在 Supabase 控制台 SQL Editor 执行 docs/SUPABASE_SETUP.md 第 3 节的迁移 SQL";
+    const msg = (e && e.message) || "";
+    const code = e && e.code;
+    if (code === "NETWORK" || /Failed to fetch|NetworkError|Load failed|无法连接服务器/.test(msg)) {
+      return "无法连接 Supabase 服务器。最常见原因：免费项目 7 天无活动被自动暂停（暂停后域名失效）。请打开 supabase.com/dashboard 查看项目是否显示 Paused，点 Restore 恢复后重试。";
     }
-    if (e && /Failed to fetch|NetworkError|Load failed/.test(e.message || "")) {
-      return "网络连接失败，请检查网络后重试";
+    if (/连接超时/.test(msg)) {
+      return "连接超时：服务器无响应，可能是项目已暂停或当前网络无法访问 Supabase。请检查项目状态后重试。";
     }
-    return (e && e.message) || "未知错误";
+    if (code === "PGRST205" || /Could not find the table/.test(msg)) {
+      return "登录成功，但云端数据表未创建：请在 Supabase 控制台 SQL Editor 执行 docs/SUPABASE_SETUP.md 第 3 节的迁移 SQL。";
+    }
+    if (/Invalid login credentials/.test(msg)) return "邮箱或密码不正确（若刚注册，请先确认邮箱里的验证邮件）。";
+    if (/Email not confirmed/.test(msg)) return "邮箱尚未验证：请打开注册邮箱点击确认链接，再回来登录。";
+    if (/User already registered/.test(msg)) return "这个邮箱已注册过，直接点「登录」即可。";
+    return msg || "未知错误";
+  },
+
+  /* 连接诊断：逐步检查服务器、登录状态、数据表 */
+  async diagnose() {
+    const cfg = SupabaseConfig.get();
+    const out = { configured: !!(cfg && cfg.url && cfg.key), url: cfg ? cfg.url : "", steps: [] };
+    if (!out.configured) {
+      out.steps.push({ name: "配置", ok: false, msg: "尚未填写 Supabase 地址和密钥" });
+      return out;
+    }
+    const probe = new SupabaseAdapter({ url: cfg.url, key: cfg.key });
+    // 1. 服务器连通（不需要登录）
+    let t0 = performance.now();
+    try {
+      await probe.req("/auth/v1/settings");
+      out.steps.push({ name: "服务器连通", ok: true, msg: `响应 ${Math.round(performance.now() - t0)} ms` });
+    } catch (e) {
+      out.steps.push({
+        name: "服务器连通", ok: false,
+        msg: "无法访问该地址：域名解析失败或项目已暂停。请打开 supabase.com/dashboard 检查项目状态（Paused → Restore）。"
+      });
+      return out;
+    }
+    // 2. 登录状态
+    let user = null;
+    try { user = await probe.currentUser(); } catch (e) { user = null; }
+    out.steps.push({ name: "登录状态", ok: !!user, msg: user ? `已登录：${user.email}` : "未登录（需在下方输入邮箱密码）" });
+    if (!user) return out;
+    // 3. 数据表
+    try {
+      await probe.req("/rest/v1/tasks?select=id&limit=1", { auth: true });
+      out.steps.push({ name: "数据表", ok: true, msg: "云端表可读写" });
+    } catch (e) {
+      out.steps.push({
+        name: "数据表", ok: false,
+        msg: e.code === "PGRST205" ? "云端表未创建，请执行迁移 SQL（docs/SUPABASE_SETUP.md 第 3 节）" : this.friendlyError(e)
+      });
+    }
+    return out;
   },
 
   /* 本地发生更改：有 adapter 时标记待同步并触发 flush；无 adapter 时仅记录 */

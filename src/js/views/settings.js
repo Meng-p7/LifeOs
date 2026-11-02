@@ -177,6 +177,27 @@ const SettingsView = {
         UI.h("div", { class: "field-hint" }, "在 Supabase 控制台 Settings → API 获取。该密钥设计上前端可公开，数据隔离由数据库行级安全（RLS）保证；请勿使用 service_role key。")),
       UI.h("div", { class: "row", style: "margin-bottom:6px" },
         UI.h("button", { class: "btn primary", type: "button", onclick: saveCfg }, "保存并连接"),
+        UI.h("button", { class: "btn", type: "button", onclick: async (e) => {
+          const box = document.getElementById("cloudDiag");
+          box.innerHTML = "";
+          box.append(UI.h("div", { class: "field-hint" }, "正在诊断连接…（最多约 25 秒）"));
+          e.target.disabled = true;
+          const r = await Sync.diagnose();
+          e.target.disabled = false;
+          box.innerHTML = "";
+          if (!r.configured) {
+            box.append(UI.h("div", { class: "diag-row" }, UI.h("span", { class: "diag-dot bad" }), UI.h("span", {}, "请先填写地址和密钥并保存")));
+            return;
+          }
+          r.steps.forEach(s => box.append(UI.h("div", { class: "diag-row" },
+            UI.h("span", { class: "diag-dot " + (s.ok ? "ok" : "bad") }),
+            UI.h("b", {}, s.name + "："),
+            UI.h("span", {}, s.msg))));
+          if (!r.steps[0].ok) {
+            box.append(UI.h("div", { class: "field-hint" },
+              "排查顺序：① 打开 supabase.com/dashboard 看项目是否显示 Paused（免费版 7 天无活动会自动暂停），是则点 Restore；② 确认地址复制无误（应形如 https://xxxx.supabase.co）。"));
+          }
+        } }, "诊断连接"),
         configured ? UI.h("button", { class: "btn danger", type: "button", onclick: async () => {
           const ok = await UI.confirmDanger("清除云同步配置", "将退出登录并清除本机保存的 Supabase 配置。云端数据不会被删除。确定吗？", "清除配置");
           if (!ok) return;
@@ -189,6 +210,7 @@ const SettingsView = {
           UI.toast("配置已清除");
         } }, "清除配置") : null)
     );
+    card.append(UI.h("div", { id: "cloudDiag", style: "margin-top:4px" }));
 
     if (!configured) {
       card.append(UI.h("div", { class: "field-hint" },
@@ -203,7 +225,11 @@ const SettingsView = {
       const doLogin = async () => {
         if (!email.value.trim() || !pwd.value) { UI.toast("填写邮箱和密码"); return; }
         try { await Sync.signIn(email.value.trim(), pwd.value); UI.toast("登录成功，数据已同步"); SettingsView.render(); }
-        catch (e) { UI.toast("登录失败：" + Sync.friendlyError(e)); }
+        catch (e) {
+          // 已登录但同步失败（表未建/网络）：显示真实原因，并切到已登录状态
+          UI.toast((e.loggedIn ? "登录成功，但" : "登录失败：") + Sync.friendlyError(e), 6000);
+          if (e.loggedIn) setTimeout(() => SettingsView.render(), 400);
+        }
       };
       const doSignUp = async () => {
         if (!email.value.trim() || !pwd.value) { UI.toast("填写邮箱和密码"); return; }
@@ -276,7 +302,7 @@ const SettingsView = {
           hasV1 ? UI.h("button", { class: "btn", type: "button", onclick: () => this.restoreV1() }, "恢复 v1 旧数据") : null),
         UI.h("div", { class: "field-hint" },
           "数据保存在本机浏览器 localStorage。建议定期导出备份；换设备时先导出、再在新设备导入。", UI.h("br"),
-          "云同步（多设备实时同步）尚未配置：完成 Supabase 部署后可在此登录，详见仓库 docs/SUPABASE_SETUP.md。"),
+          `云同步状态：${SupabaseConfig.get() ? (SupabaseConfig.getSession() ? "已配置并登录" : "已配置，未登录") : "未配置"}。详细步骤见仓库 docs/SUPABASE_SETUP.md。`),
         UI.h("button", { class: "btn danger", type: "button", onclick: () => this.clearAll() }, "清空所有数据"))
     );
     return card;

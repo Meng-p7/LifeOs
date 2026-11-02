@@ -592,6 +592,14 @@ dialog[open]{animation:dlgIn .28s var(--ease)}
 .subj-pill button{color:var(--blue-deep);opacity:.55;font-size:14px;line-height:1;padding:0 4px;border-radius:50%;transition:all .15s}
 .subj-pill button:hover{opacity:1;color:var(--coral-deep);transform:rotate(90deg)}
 
+/* 连接诊断 */
+.diag-row{display:flex;align-items:flex-start;gap:8px;font-size:12.5px;line-height:1.65;color:var(--ink-2);padding:7px 0;border-bottom:1px dashed var(--line)}
+.diag-row:last-child{border-bottom:none}
+.diag-row b{flex:none;color:var(--ink);font-weight:700}
+.diag-dot{width:8px;height:8px;border-radius:50%;flex:none;margin-top:7px}
+.diag-dot.ok{background:var(--green);box-shadow:0 0 0 3px var(--green-soft)}
+.diag-dot.bad{background:var(--coral);box-shadow:0 0 0 3px var(--coral-soft)}
+
 /* ---------- 响应式 ---------- */
 @media (max-width:900px){
   .hero-top{grid-template-columns:1fr}
@@ -599,7 +607,7 @@ dialog[open]{animation:dlgIn .28s var(--ease)}
 }
 @media (max-width:720px){
   :root{--nav-h:62px}
-  .app{padding:14px 13px calc(var(--nav-h) + 26px)}
+  .app{padding:14px 13px calc(var(--nav-h) + 48px)}
   /* 导航移到底部 */
   .nav{
     position:fixed;left:0;right:0;bottom:0;z-index:200;
@@ -1419,18 +1427,25 @@ const Sync = {
     }
   },
 
-  /* 登录（设置页调用） */
+  /* 登录（设置页调用）。注意：登录成功但同步失败（如表未建）时要区分提示 */
   async signIn(email, password) {
     if (!this.adapter) throw new Error("尚未配置云同步");
     this.setStatus("syncing");
     try {
       await this.adapter.signIn(email, password);
+    } catch (e) {
+      this.setStatus("error", this.friendlyError(e));
+      throw e;
+    }
+    try {
       await this.adapter.syncAfterLogin();
       this.setStatus("synced");
       return true;
     } catch (e) {
       this.setStatus("error", this.friendlyError(e));
-      throw e;
+      const err = new Error(this.friendlyError(e));
+      err.loggedIn = true;   // 已拿到会话，只是同步没成功
+      throw err;
     }
   },
 
@@ -1460,13 +1475,60 @@ const Sync = {
 
   /* 云端错误的人话提示 */
   friendlyError(e) {
-    if (e && (e.code === "PGRST205" || /Could not find the table/.test(e.message || ""))) {
-      return "云端数据表未创建：请在 Supabase 控制台 SQL Editor 执行 docs/SUPABASE_SETUP.md 第 3 节的迁移 SQL";
+    const msg = (e && e.message) || "";
+    const code = e && e.code;
+    if (code === "NETWORK" || /Failed to fetch|NetworkError|Load failed|无法连接服务器/.test(msg)) {
+      return "无法连接 Supabase 服务器。最常见原因：免费项目 7 天无活动被自动暂停（暂停后域名失效）。请打开 supabase.com/dashboard 查看项目是否显示 Paused，点 Restore 恢复后重试。";
     }
-    if (e && /Failed to fetch|NetworkError|Load failed/.test(e.message || "")) {
-      return "网络连接失败，请检查网络后重试";
+    if (/连接超时/.test(msg)) {
+      return "连接超时：服务器无响应，可能是项目已暂停或当前网络无法访问 Supabase。请检查项目状态后重试。";
     }
-    return (e && e.message) || "未知错误";
+    if (code === "PGRST205" || /Could not find the table/.test(msg)) {
+      return "登录成功，但云端数据表未创建：请在 Supabase 控制台 SQL Editor 执行 docs/SUPABASE_SETUP.md 第 3 节的迁移 SQL。";
+    }
+    if (/Invalid login credentials/.test(msg)) return "邮箱或密码不正确（若刚注册，请先确认邮箱里的验证邮件）。";
+    if (/Email not confirmed/.test(msg)) return "邮箱尚未验证：请打开注册邮箱点击确认链接，再回来登录。";
+    if (/User already registered/.test(msg)) return "这个邮箱已注册过，直接点「登录」即可。";
+    return msg || "未知错误";
+  },
+
+  /* 连接诊断：逐步检查服务器、登录状态、数据表 */
+  async diagnose() {
+    const cfg = SupabaseConfig.get();
+    const out = { configured: !!(cfg && cfg.url && cfg.key), url: cfg ? cfg.url : "", steps: [] };
+    if (!out.configured) {
+      out.steps.push({ name: "配置", ok: false, msg: "尚未填写 Supabase 地址和密钥" });
+      return out;
+    }
+    const probe = new SupabaseAdapter({ url: cfg.url, key: cfg.key });
+    // 1. 服务器连通（不需要登录）
+    let t0 = performance.now();
+    try {
+      await probe.req("/auth/v1/settings");
+      out.steps.push({ name: "服务器连通", ok: true, msg: `响应 ${Math.round(performance.now() - t0)} ms` });
+    } catch (e) {
+      out.steps.push({
+        name: "服务器连通", ok: false,
+        msg: "无法访问该地址：域名解析失败或项目已暂停。请打开 supabase.com/dashboard 检查项目状态（Paused → Restore）。"
+      });
+      return out;
+    }
+    // 2. 登录状态
+    let user = null;
+    try { user = await probe.currentUser(); } catch (e) { user = null; }
+    out.steps.push({ name: "登录状态", ok: !!user, msg: user ? `已登录：${user.email}` : "未登录（需在下方输入邮箱密码）" });
+    if (!user) return out;
+    // 3. 数据表
+    try {
+      await probe.req("/rest/v1/tasks?select=id&limit=1", { auth: true });
+      out.steps.push({ name: "数据表", ok: true, msg: "云端表可读写" });
+    } catch (e) {
+      out.steps.push({
+        name: "数据表", ok: false,
+        msg: e.code === "PGRST205" ? "云端表未创建，请执行迁移 SQL（docs/SUPABASE_SETUP.md 第 3 节）" : this.friendlyError(e)
+      });
+    }
+    return out;
   },
 
   /* 本地发生更改：有 adapter 时标记待同步并触发 flush；无 adapter 时仅记录 */
@@ -1631,14 +1693,38 @@ class SupabaseAdapter {
     this.user = null;   // {id, email}
   }
 
-  /* ---------- 内部：请求 ---------- */
-  async req(path, { method = "GET", body, auth = false, headers = {} } = {}) {
+  /* ---------- 内部：请求（带 12 秒超时 + 网络失败自动重试 1 次） ---------- */
+  async req(path, opts = {}) {
+    return this._req(path, opts, 0);
+  }
+
+  async _req(path, { method = "GET", body, auth = false, headers = {} } = {}, attempt) {
     const h = { "apikey": this.key, "Content-Type": "application/json", ...headers };
     if (auth) {
       const token = await this.validToken();
       h["Authorization"] = "Bearer " + token;
     }
-    const res = await fetch(this.url + path, { method, headers: h, body: body ? JSON.stringify(body) : undefined });
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 12000);
+    let res;
+    try {
+      res = await fetch(this.url + path, {
+        method, headers: h,
+        body: body ? JSON.stringify(body) : undefined,
+        signal: ctrl.signal
+      });
+    } catch (e) {
+      // 网络层失败：超时 / DNS 解析失败 / 连接被拒
+      if (attempt < 1) {
+        await new Promise(r => setTimeout(r, 900));
+        return this._req(path, { method, body, auth, headers }, attempt + 1);
+      }
+      const err = new Error(e.name === "AbortError" ? "连接超时（12 秒）" : "无法连接服务器");
+      err.code = "NETWORK";
+      throw err;
+    } finally {
+      clearTimeout(timer);
+    }
     if (res.status === 401 && auth) {
       // token 可能失效：尝试刷新一次再重试
       await this.refresh(true);
@@ -3216,6 +3302,27 @@ const SettingsView = {
         UI.h("div", { class: "field-hint" }, "在 Supabase 控制台 Settings → API 获取。该密钥设计上前端可公开，数据隔离由数据库行级安全（RLS）保证；请勿使用 service_role key。")),
       UI.h("div", { class: "row", style: "margin-bottom:6px" },
         UI.h("button", { class: "btn primary", type: "button", onclick: saveCfg }, "保存并连接"),
+        UI.h("button", { class: "btn", type: "button", onclick: async (e) => {
+          const box = document.getElementById("cloudDiag");
+          box.innerHTML = "";
+          box.append(UI.h("div", { class: "field-hint" }, "正在诊断连接…（最多约 25 秒）"));
+          e.target.disabled = true;
+          const r = await Sync.diagnose();
+          e.target.disabled = false;
+          box.innerHTML = "";
+          if (!r.configured) {
+            box.append(UI.h("div", { class: "diag-row" }, UI.h("span", { class: "diag-dot bad" }), UI.h("span", {}, "请先填写地址和密钥并保存")));
+            return;
+          }
+          r.steps.forEach(s => box.append(UI.h("div", { class: "diag-row" },
+            UI.h("span", { class: "diag-dot " + (s.ok ? "ok" : "bad") }),
+            UI.h("b", {}, s.name + "："),
+            UI.h("span", {}, s.msg))));
+          if (!r.steps[0].ok) {
+            box.append(UI.h("div", { class: "field-hint" },
+              "排查顺序：① 打开 supabase.com/dashboard 看项目是否显示 Paused（免费版 7 天无活动会自动暂停），是则点 Restore；② 确认地址复制无误（应形如 https://xxxx.supabase.co）。"));
+          }
+        } }, "诊断连接"),
         configured ? UI.h("button", { class: "btn danger", type: "button", onclick: async () => {
           const ok = await UI.confirmDanger("清除云同步配置", "将退出登录并清除本机保存的 Supabase 配置。云端数据不会被删除。确定吗？", "清除配置");
           if (!ok) return;
@@ -3228,6 +3335,7 @@ const SettingsView = {
           UI.toast("配置已清除");
         } }, "清除配置") : null)
     );
+    card.append(UI.h("div", { id: "cloudDiag", style: "margin-top:4px" }));
 
     if (!configured) {
       card.append(UI.h("div", { class: "field-hint" },
@@ -3242,7 +3350,11 @@ const SettingsView = {
       const doLogin = async () => {
         if (!email.value.trim() || !pwd.value) { UI.toast("填写邮箱和密码"); return; }
         try { await Sync.signIn(email.value.trim(), pwd.value); UI.toast("登录成功，数据已同步"); SettingsView.render(); }
-        catch (e) { UI.toast("登录失败：" + Sync.friendlyError(e)); }
+        catch (e) {
+          // 已登录但同步失败（表未建/网络）：显示真实原因，并切到已登录状态
+          UI.toast((e.loggedIn ? "登录成功，但" : "登录失败：") + Sync.friendlyError(e), 6000);
+          if (e.loggedIn) setTimeout(() => SettingsView.render(), 400);
+        }
       };
       const doSignUp = async () => {
         if (!email.value.trim() || !pwd.value) { UI.toast("填写邮箱和密码"); return; }
@@ -3315,7 +3427,7 @@ const SettingsView = {
           hasV1 ? UI.h("button", { class: "btn", type: "button", onclick: () => this.restoreV1() }, "恢复 v1 旧数据") : null),
         UI.h("div", { class: "field-hint" },
           "数据保存在本机浏览器 localStorage。建议定期导出备份；换设备时先导出、再在新设备导入。", UI.h("br"),
-          "云同步（多设备实时同步）尚未配置：完成 Supabase 部署后可在此登录，详见仓库 docs/SUPABASE_SETUP.md。"),
+          `云同步状态：${SupabaseConfig.get() ? (SupabaseConfig.getSession() ? "已配置并登录" : "已配置，未登录") : "未配置"}。详细步骤见仓库 docs/SUPABASE_SETUP.md。`),
         UI.h("button", { class: "btn danger", type: "button", onclick: () => this.clearAll() }, "清空所有数据"))
     );
     return card;

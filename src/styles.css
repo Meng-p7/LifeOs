@@ -583,6 +583,14 @@ dialog[open]{animation:dlgIn .28s var(--ease)}
 .subj-pill button{color:var(--blue-deep);opacity:.55;font-size:14px;line-height:1;padding:0 4px;border-radius:50%;transition:all .15s}
 .subj-pill button:hover{opacity:1;color:var(--coral-deep);transform:rotate(90deg)}
 
+/* 连接诊断 */
+.diag-row{display:flex;align-items:flex-start;gap:8px;font-size:12.5px;line-height:1.65;color:var(--ink-2);padding:7px 0;border-bottom:1px dashed var(--line)}
+.diag-row:last-child{border-bottom:none}
+.diag-row b{flex:none;color:var(--ink);font-weight:700}
+.diag-dot{width:8px;height:8px;border-radius:50%;flex:none;margin-top:7px}
+.diag-dot.ok{background:var(--green);box-shadow:0 0 0 3px var(--green-soft)}
+.diag-dot.bad{background:var(--coral);box-shadow:0 0 0 3px var(--coral-soft)}
+
 /* ---------- 响应式 ---------- */
 @media (max-width:900px){
   .hero-top{grid-template-columns:1fr}
@@ -590,7 +598,7 @@ dialog[open]{animation:dlgIn .28s var(--ease)}
 }
 @media (max-width:720px){
   :root{--nav-h:62px}
-  .app{padding:14px 13px calc(var(--nav-h) + 26px)}
+  .app{padding:14px 13px calc(var(--nav-h) + 48px)}
   /* 导航移到底部 */
   .nav{
     position:fixed;left:0;right:0;bottom:0;z-index:200;

@@ -47,14 +47,38 @@ class SupabaseAdapter {
     this.user = null;   // {id, email}
   }
 
-  /* ---------- 内部：请求 ---------- */
-  async req(path, { method = "GET", body, auth = false, headers = {} } = {}) {
+  /* ---------- 内部：请求（带 12 秒超时 + 网络失败自动重试 1 次） ---------- */
+  async req(path, opts = {}) {
+    return this._req(path, opts, 0);
+  }
+
+  async _req(path, { method = "GET", body, auth = false, headers = {} } = {}, attempt) {
     const h = { "apikey": this.key, "Content-Type": "application/json", ...headers };
     if (auth) {
       const token = await this.validToken();
       h["Authorization"] = "Bearer " + token;
     }
-    const res = await fetch(this.url + path, { method, headers: h, body: body ? JSON.stringify(body) : undefined });
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 12000);
+    let res;
+    try {
+      res = await fetch(this.url + path, {
+        method, headers: h,
+        body: body ? JSON.stringify(body) : undefined,
+        signal: ctrl.signal
+      });
+    } catch (e) {
+      // 网络层失败：超时 / DNS 解析失败 / 连接被拒
+      if (attempt < 1) {
+        await new Promise(r => setTimeout(r, 900));
+        return this._req(path, { method, body, auth, headers }, attempt + 1);
+      }
+      const err = new Error(e.name === "AbortError" ? "连接超时（12 秒）" : "无法连接服务器");
+      err.code = "NETWORK";
+      throw err;
+    } finally {
+      clearTimeout(timer);
+    }
     if (res.status === 401 && auth) {
       // token 可能失效：尝试刷新一次再重试
       await this.refresh(true);
