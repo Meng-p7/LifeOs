@@ -33,7 +33,10 @@ if (!html.includes("/*__CSS__*/") || !html.includes("/*__JS__*/")) {
   process.exit(1);
 }
 // 用函数形式替换，避免 $ 特殊序列问题
-html = html.replace("/*__CSS__*/", () => css).replace("/*__JS__*/", () => js);
+const heroB64 = "url(\"data:image/jpeg;base64," + fs.readFileSync(path.join(root, "tools", "mountain.jpg")).toString("base64") + "\")";
+html = html.replace("/*__CSS__*/", () => css)
+  .replace("/*__HERO__*/none", () => heroB64 + ";")
+  .replace("/*__JS__*/", () => js);
 
 const out = path.join(root, "index.html");
 fs.writeFileSync(out, html);
