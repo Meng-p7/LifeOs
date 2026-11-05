@@ -15,23 +15,20 @@ const TasksView = {
 
   addCard() {
     const inp = UI.input({ placeholder: "任务内容，例如：机械设计第三章作业", required: true, maxlength: 80, id: "taskInp" });
-    const subj = UI.select(Store.subjects().map(s => ({ value: s.id, label: s.name })), "", { allLabel: "未分类" });
     const due = UI.input({ type: "date", id: "taskDue", value: todayStr() });
     const pri = UI.select([
       { value: "normal", label: "普通" }, { value: "high", label: "紧急" }, { value: "low", label: "低优" }
     ], "normal");
-    const est = UI.input({ type: "number", min: 0, max: 600, step: 5, placeholder: "预计分钟", id: "taskEst" });
-    est.style.width = "100px";
     const submit = () => {
       const title = inp.value.trim();
       if (!title) { UI.toast("先输入任务内容"); inp.focus(); return; }
       Store.state.tasks.push(Store.touch({
-        id: uid(), title, subjectId: subj.value || null, due: due.value || "",
-        priority: pri.value, estMin: parseInt(est.value || "0", 10) || 0,
+        id: uid(), title, subjectId: null, due: due.value || "",
+        priority: pri.value, estMin: 0,
         done: false, doneAt: null, createdAt: Date.now(), deleted: false
       }));
       Store.save();
-      inp.value = ""; est.value = "";
+      inp.value = "";
       this.render(); this.renderCounts();
       UI.toast("已添加任务");
       inp.focus();
@@ -40,7 +37,7 @@ const TasksView = {
     return UI.h("div", { class: "card" },
       UI.h("div", { class: "card-title" }, UI.h("span", { class: "bar" }), "添加任务", UI.h("span", { class: "extra" }, "回车快速添加")),
       UI.h("div", { class: "add-row" },
-        inp, subj, due, pri, est,
+        inp, due, pri,
         UI.h("button", { class: "btn primary", type: "button", onclick: submit }, "添加"))
     );
   },
@@ -132,7 +129,7 @@ const TasksView = {
       UI.h("div", { class: "body" },
         UI.h("div", { class: "t-title" }, t.title),
         UI.h("div", { class: "t-meta" },
-          UI.h("span", { class: "tag " + (t.subjectId ? "tag-subject" : "tag-due") }, Store.subjectName(t.subjectId) || "未分类"),
+          t.subjectId ? UI.h("span", { class: "tag tag-subject" }, Store.subjectName(t.subjectId)) : null,
           t.due ? UI.h("span", { class: `tag tag-due ${dueCls(t.due, t.done)}` }, fmtDue(t.due)) : null,
           t.estMin ? UI.h("span", { class: "tag tag-due" }, `预计 ${fmtMin(t.estMin)}`) : null,
           t.spentMin ? UI.h("span", { class: "tag tag-spent" }, `已投入 ${fmtMin(t.spentMin)}`) : null,
@@ -206,7 +203,7 @@ const TasksView = {
         box._get = () => ({ title, subj, due, pri, est });
       },
       onSubmit: (box) => {
-        const f = box._get;
+        const f = box._get();
         if (!f.title.value.trim()) { UI.toast("任务内容不能为空"); return false; }
         t.title = f.title.value.trim();
         t.subjectId = f.subj.value || null;

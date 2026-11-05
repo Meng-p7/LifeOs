@@ -141,7 +141,7 @@ const StudyView = {
         box._get = () => name;
       },
       onSubmit: (box) => {
-        const v = box._get.value.trim();
+        const v = box._get().value.trim();
         if (!v) { UI.toast("名称不能为空"); return false; }
         it.title = v;
         Store.state.study.updatedAt = Date.now();

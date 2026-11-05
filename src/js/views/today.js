@@ -169,7 +169,6 @@ const TodayView = {
 
     const goStudy = () => App.switchView("study");
     const goFit = () => App.switchView("fitness");
-    const goReview = () => App.switchView("review");
 
     return UI.h("div", { class: "card" },
       UI.h("div", { class: "card-title" }, UI.h("span", { class: "bar", style: "background:var(--green)" }), "核心数据"),
@@ -177,8 +176,7 @@ const TodayView = {
         UI.stat({ value: fmtMin(Store.studyMinutes(ts)), label: "今日学习", onClick: goStudy, sub: `本周 ${(weekStudy / 60).toFixed(1)} 小时` }),
         UI.stat({ value: `${doneRateWeek()}%`, label: "本周任务完成率", color: "green", sub: `完成 ${weekDone} 项` }),
         UI.stat({ value: w === null ? "—" : `${w} kg`, label: "当前体重", color: "coral", sub: avg7 === null ? "暂无 7 日均值" : `7 日均值 ${avg7} kg`, onClick: goFit }),
-        UI.stat({ value: `${weekFit} 次`, label: "本周训练", color: "violet", sub: `计划 ${Store.state.settings.training.planDays.length} 次/周`, onClick: goFit }),
-        UI.stat({ value: Store.reviewOf(ts) ? "已写" : "未写", label: "今日复盘", color: Store.reviewOf(ts) ? "green" : "amber", onClick: goReview })
+        UI.stat({ value: `${weekFit} 次`, label: "本周训练", color: "violet", sub: `计划 ${Store.state.settings.training.planDays.length} 次/周`, onClick: goFit })
       ),
       UI.h("div", { class: "chart-note" }, "以上数字均来自你的真实记录：学习时长来自计时，训练次数来自打卡，体重来自每日录入。")
     );

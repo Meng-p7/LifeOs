@@ -12,6 +12,19 @@
 </head>
 <body>
 
+<!-- 启动加载动画 -->
+<div class="splash" id="splash" aria-hidden="true">
+  <div class="splash-inner">
+    <div class="splash-orbit">
+      <span class="orbit o1"></span><span class="orbit o2"></span><span class="orbit o3"></span>
+      <div class="splash-mark">L</div>
+    </div>
+    <div class="splash-name">LifeOS</div>
+    <div class="splash-sub">正在加载你的生活操作系统</div>
+    <div class="splash-bar"><i></i></div>
+  </div>
+</div>
+
 <canvas id="bgCanvas" aria-hidden="true"></canvas>
 <div class="scroll-progress" id="scrollProgress" aria-hidden="true"></div>
 
@@ -56,10 +69,6 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5h11v11h-11z"/><path d="M2 9v6M22 9v6M6.5 2v4M17.5 2v4M6.5 18v4M17.5 18v4"/></svg>
       <span>健身</span>
     </button>
-    <button class="nav-item" data-view="review" type="button">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-      <span>复盘</span>
-    </button>
   </nav>
 
   <!-- 视图容器 -->
@@ -68,7 +77,6 @@
     <section class="view" id="view-tasks" role="tabpanel" aria-label="任务" hidden></section>
     <section class="view" id="view-study" role="tabpanel" aria-label="学习" hidden></section>
     <section class="view" id="view-fitness" role="tabpanel" aria-label="健身" hidden></section>
-    <section class="view" id="view-review" role="tabpanel" aria-label="复盘" hidden></section>
   </main>
 </div>
 

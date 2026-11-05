@@ -61,15 +61,11 @@ with sync_playwright() as p:
     page.wait_for_timeout(200)
     print("study OK: 计时启动/暂停/继续")
 
-    # 健身页 + 复盘页
+    # 健身页
     page.click('.nav-item[data-view="fitness"]')
     page.wait_for_timeout(300)
     assert page.locator("#view-fitness .ex").count() >= 1, "健身动作未渲染"
     print("fitness OK:", page.locator("#view-fitness .ex").count(), "exercises")
-
-    page.click('.nav-item[data-view="review"]')
-    page.wait_for_timeout(300)
-    print("review OK")
 
     # 设置页（顶栏齿轮）
     page.click("#btnSettings")

@@ -14,8 +14,21 @@ const App = {
     this.bindTopbar();
     this.initScrollFx();
     this.renderAll();
+    this.hideSplash();
     // 窗口尺寸变化时重定位 pill
     window.addEventListener("resize", () => this.moveNavPill());
+  },
+
+  /* 启动动画：应用就绪后淡出（最短展示 600ms，避免一闪而过） */
+  hideSplash() {
+    const sp = document.getElementById("splash");
+    if (!sp) return;
+    const elapsed = performance.now();
+    const wait = Math.max(0, 600 - elapsed);
+    setTimeout(() => {
+      sp.classList.add("hide");
+      setTimeout(() => sp.remove(), 600);
+    }, wait);
   },
 
   bindNav() {
@@ -49,7 +62,7 @@ const App = {
 
   switchView(v) {
     this.curView = v;
-    ["today", "tasks", "study", "fitness", "review", "settings"].forEach(x => {
+    ["today", "tasks", "study", "fitness", "settings"].forEach(x => {
       const el = document.getElementById("view-" + x);
       if (!el) return;
       el.classList.toggle("show", x === v);
@@ -62,7 +75,6 @@ const App = {
     if (v === "tasks") { TasksView.render(); }
     if (v === "study") StudyView.render();
     if (v === "fitness") FitnessView.render();
-    if (v === "review") ReviewView.render();
     if (v === "settings") SettingsView.render();
   },
 

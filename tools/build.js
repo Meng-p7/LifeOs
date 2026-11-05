@@ -19,7 +19,6 @@ const JS_FILES = [
   "src/js/views/tasks.js",
   "src/js/views/study.js",
   "src/js/views/fitness.js",
-  "src/js/views/review.js",
   "src/js/views/settings.js",
   "src/js/app.js"
 ];
