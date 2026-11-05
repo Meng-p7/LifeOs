@@ -31,13 +31,11 @@
 <div class="app" id="app">
   <!-- 顶栏 -->
   <header class="topbar" id="topbar">
-    <div class="brand">
+    <div class="brand mobile-brand">
       <div class="brand-mark" aria-hidden="true">L</div>
-      <div class="brand-text">
-        <h1>LifeOS</h1>
-        <div class="date-line" id="dateLine"></div>
-      </div>
+      <h1>LifeOS</h1>
     </div>
+    <div class="topbar-date"><span class="date-line" id="dateLine"></span><span class="date-sub">今天 · 保持节奏</span></div>
     <div class="topbar-right">
       <button class="chip-sync" id="syncChip" type="button" title="数据同步状态"></button>
       <button class="icon-btn" id="btnTheme" type="button" aria-label="切换深浅主题" title="切换主题"></button>
@@ -52,6 +50,10 @@
 
   <!-- 导航（桌面顶部 / 移动底部，Liquid Glass） -->
   <nav class="nav" id="nav" aria-label="主导航">
+    <div class="nav-brand">
+      <div class="brand-mark" aria-hidden="true">L</div>
+      <h1>LifeOS</h1>
+    </div>
     <span class="nav-pill" id="navPill" aria-hidden="true"></span>
     <button class="nav-item active" data-view="today" type="button">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12l9-9 9 9"/><path d="M5 10v10h14V10"/></svg>
@@ -73,6 +75,11 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.09a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.09a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       <span>设置</span>
     </button>
+    <div class="nav-foot" aria-hidden="true">
+      <div class="nav-foot-img"></div>
+      <div class="nav-foot-txt">Better You<br>A Greater Future</div>
+      <div class="nav-foot-arrow">→</div>
+    </div>
   </nav>
 
   <!-- 视图容器 -->
