@@ -54,7 +54,7 @@ const TodayView = {
 
     const t = pool[0];
     const tagText = t.due && dayDiff(ts, t.due) < 0 ? `逾期 ${-dayDiff(ts, t.due)} 天` : t.due === ts ? "今天到期" : PRIORITY_LABEL(t.priority);
-    const tagCls = t.due && dayDiff(ts, t.due) >= 0 ? "today" : "over";
+    const tagCls = !t.due ? "" : dayDiff(ts, t.due) < 0 ? "over" : "today";
     return UI.h("div", { class: "next-action" },
       UI.h("div", { class: "na-label" }, "下一步"),
       UI.h("div", { class: "na-body" },
@@ -99,7 +99,7 @@ const TodayView = {
       );
     } else {
       const diff = dayDiff(todayStr(), s.examDate);
-      const start = new Date(s.examDate); start.setMonth(start.getMonth() - 4);
+      const start = parseDate(s.examDate); start.setMonth(start.getMonth() - 4);
       const total = Math.max(1, dayDiff(dstr(start), s.examDate));
       const pct = diff > 0 ? Math.min(100, Math.max(2, Math.round((total - diff) / total * 100))) : 100;
       cd = UI.h("div", { class: "card countdown" },

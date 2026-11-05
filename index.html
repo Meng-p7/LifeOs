@@ -7,39 +7,37 @@
 <title>LifeOS · 个人生活操作系统</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%233b6ef5'/%3E%3Ctext x='16' y='22' font-size='16' font-family='sans-serif' font-weight='bold' fill='white' text-anchor='middle'%3EL%3C/text%3E%3C/svg%3E">
 <style>
-/* ================= LifeOS 设计系统（极简冷淡） ================= */
+/* ================= LifeOS 设计系统（清爽多彩） ================= */
 :root{
-  --bg:#f6f6f7;
-  --bg-2:#ededef;
+  --bg:#f7f8fb;
+  --bg-2:#eef0f5;
   --surface:#ffffff;
-  --surface-2:#fafafa;
+  --surface-2:#fafbfd;
   --ink:#121316;
   --ink-2:#5c6068;
   --ink-3:#9aa0a8;
-  --line:#e7e7ea;
-  --line-2:#d8d8dd;
-  /* 唯一强调色 */
+  --line:#e7e8ee;
+  --line-2:#d8dae2;
   --blue:#2f6df6;
   --blue-deep:#1f57d6;
   --blue-soft:#f1f5ff;
   --blue-2:#cddcfb;
   --blue-soft-2:#e8effd;
-  /* 其余颜色统一降为灰度（图表用深浅灰区分） */
-  --coral:#5c6068;
-  --coral-deep:#121316;
-  --coral-soft:#f2f2f4;
-  --green:#121316;
-  --green-deep:#2f6df6;
-  --green-soft:#f2f2f4;
-  --amber:#8a8f98;
-  --amber-soft:#f4f4f6;
-  --violet:#8a8f98;
-  --violet-soft:#f4f4f6;
+  --coral:#ef5f6b;
+  --coral-deep:#d7384a;
+  --coral-soft:#fdeef0;
+  --green:#18a05e;
+  --green-deep:#0e7a45;
+  --green-soft:#e8f7ef;
+  --amber:#e8930c;
+  --amber-soft:#fdf4e3;
+  --violet:#7c5cf0;
+  --violet-soft:#f1edfe;
   --r-lg:14px;
   --r-md:11px;
   --r-sm:7px;
-  --shadow:none;
-  --shadow-lg:0 16px 40px rgba(0,0,0,.10);
+  --shadow:0 2px 12px rgba(18,22,40,.07);
+  --shadow-lg:0 16px 40px rgba(18,22,40,.12);
   --font:"Sora","Space Grotesk","PingFang SC","HarmonyOS Sans SC","Microsoft YaHei",-apple-system,"Segoe UI",sans-serif;
   --ease:cubic-bezier(.22,.9,.32,1);
   --nav-h:60px;
@@ -59,17 +57,17 @@
   --blue-soft:#1a2030;
   --blue-2:#33456e;
   --blue-soft-2:#1f2737;
-  --coral:#a3a6ad;
-  --coral-deep:#ededee;
-  --coral-soft:#1f2124;
-  --green:#ededee;
-  --green-deep:#6d9bff;
-  --green-soft:#1f2124;
-  --amber:#8a8f98;
-  --amber-soft:#1e2023;
-  --violet:#8a8f98;
-  --violet-soft:#1e2023;
-  --shadow:none;
+  --coral:#ff7b86;
+  --coral-deep:#ff9aa3;
+  --coral-soft:#3a2429;
+  --green:#34c98a;
+  --green-deep:#5ad6a0;
+  --green-soft:#17342a;
+  --amber:#f0b13f;
+  --amber-soft:#33291a;
+  --violet:#a58bff;
+  --violet-soft:#241f3d;
+  --shadow:0 2px 12px rgba(0,0,0,.3);
   --shadow-lg:0 16px 40px rgba(0,0,0,.5);
 }
 
@@ -96,7 +94,7 @@ input,select,textarea{font-family:var(--font);font-size:14px;color:var(--ink)}
 ::-webkit-scrollbar-thumb:hover{background:var(--ink-3)}
 
 #bgCanvas{position:fixed;inset:0;z-index:0;pointer-events:none}
-.scroll-progress{position:fixed;top:0;left:0;height:3px;width:0;z-index:350;background:var(--blue);border-radius:0 2px 2px 0;transition:width .1s linear}
+.scroll-progress{position:fixed;top:0;left:0;height:3px;width:0;z-index:350;background:linear-gradient(90deg,var(--blue),var(--violet));border-radius:0 2px 2px 0;transition:width .1s linear}
 
 .app{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:20px 20px calc(var(--nav-h) + 28px)}
 
@@ -113,10 +111,10 @@ input,select,textarea{font-family:var(--font);font-size:14px;color:var(--ink)}
 .brand{display:flex;align-items:center;gap:11px;min-width:0}
 .brand-mark{
   width:40px;height:40px;border-radius:12px;flex:none;
-  background:var(--ink);
+  background:linear-gradient(135deg,var(--blue),var(--violet));
   display:flex;align-items:center;justify-content:center;
   color:#fff;font-weight:800;font-size:19px;
-  box-shadow:none;
+  box-shadow:0 4px 12px rgba(47,109,246,.28);
   transition:transform .3s var(--ease);
 }
 .brand-mark:hover{transform:rotate(-8deg) scale(1.08)}
@@ -220,7 +218,7 @@ input,select,textarea{font-family:var(--font);font-size:14px;color:var(--ink)}
   box-shadow:var(--shadow);padding:20px;margin-bottom:16px;
   transition:box-shadow .25s ease,border-color .25s ease;
 }
-.card:hover{border-color:var(--line-2)}
+.card:hover{border-color:var(--line-2);box-shadow:var(--shadow)}
 .card:last-child{margin-bottom:0}
 .card-title{font-size:15.5px;font-weight:700;display:flex;align-items:center;gap:9px;margin-bottom:14px;flex-wrap:wrap}
 .card-title .bar{width:4px;height:16px;border-radius:2px;background:var(--ink);flex:none}
@@ -238,8 +236,8 @@ input,select,textarea{font-family:var(--font);font-size:14px;color:var(--ink)}
 }
 .btn:hover{border-color:var(--line-2);color:var(--ink);box-shadow:var(--shadow);transform:translateY(-1px)}
 .btn:active{transform:translateY(0) scale(.97)}
-.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
-.btn.primary:hover{background:var(--blue-deep);border-color:var(--blue-deep);box-shadow:0 8px 18px rgba(59,110,245,.32)}
+.btn.primary{background:linear-gradient(135deg,var(--blue),var(--blue-deep));border-color:transparent;color:#fff}
+.btn.primary:hover{background:linear-gradient(135deg,var(--blue-deep),var(--blue));border-color:transparent;box-shadow:0 8px 18px rgba(59,110,245,.32)}
 .btn.danger{color:var(--coral-deep)}
 .btn.danger:hover{border-color:var(--coral);background:var(--coral-soft)}
 .btn.ghost{background:transparent;border-color:transparent}
@@ -346,12 +344,12 @@ button.stat:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
 /* ---------- 今日（行动中心） ---------- */
 .hero-top{display:grid;grid-template-columns:1.4fr 1fr;gap:14px;align-items:start}
 .hello{padding:22px}
-.hello .greet{font-size:13px;font-weight:700;letter-spacing:2px;color:var(--blue);text-transform:uppercase}
+.hello .greet{font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;background:linear-gradient(90deg,var(--blue),var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent}
 .hello .big{font-size:24px;font-weight:800;margin:6px 0 2px;line-height:1.25}
 .hello .sub{font-size:13px;color:var(--ink-2)}
 .countdown{display:flex;align-items:center;gap:16px;padding:20px 22px}
-.countdown .num{font-size:52px;font-weight:800;line-height:1;letter-spacing:-1.5px}
-.countdown .num small{font-size:18px;font-weight:700;color:var(--ink-2);margin-left:3px;letter-spacing:0}
+.countdown .num{font-size:52px;font-weight:800;line-height:1;letter-spacing:-1.5px;background:linear-gradient(135deg,var(--blue),var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent}
+.countdown .num small{font-size:18px;font-weight:700;color:var(--ink-2);margin-left:3px;letter-spacing:0;-webkit-text-fill-color:var(--ink-2)}
 .countdown .meta{flex:1;min-width:0}
 .countdown .meta .t{font-size:14px;font-weight:700}
 .countdown .meta .d{font-size:12px;color:var(--ink-2)}
@@ -439,7 +437,7 @@ button.stat:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
 .timer-idle-icon{font-size:38px;color:var(--blue);opacity:.55;line-height:1}
 .timer-running{display:flex;flex-direction:column;align-items:center;gap:6px}
 .timer-item-name{font-size:15px;font-weight:800;color:var(--ink)}
-.timer-big{font-size:56px;font-weight:800;letter-spacing:-1px;line-height:1.1;font-variant-numeric:tabular-nums;color:var(--ink)}
+.timer-big{font-size:56px;font-weight:800;letter-spacing:-1px;line-height:1.1;font-variant-numeric:tabular-nums;background:linear-gradient(135deg,var(--blue),var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent}
 .timer-ops{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:12px}
 
 .study-items{display:flex;flex-direction:column;gap:8px}
@@ -893,7 +891,6 @@ function migrateV1(raw) {
     merged.settings.training = { ...d.settings.training, ...(raw.settings && raw.settings.training || {}) };
     if (!Array.isArray(merged.settings.subjects)) merged.settings.subjects = [];
     merged.tasks = Array.isArray(raw.tasks) ? raw.tasks : [];
-    merged.study = Array.isArray(raw.study) ? raw.study : [];
     merged.blocks = Array.isArray(raw.blocks) ? raw.blocks : [];
     ["fitness", "weight", "diet", "reviews", "quotes"].forEach(k => {
       if (!merged[k] || typeof merged[k] !== "object") merged[k] = d[k];
@@ -1853,9 +1850,8 @@ class SupabaseAdapter {
   /* ---------- 数据：拉取 ---------- */
   async pull() {
     const h = {};
-    const [tasks, study, blocks, diet, fitness, weight, reviews, settings] = await Promise.all([
+    const [tasks, blocks, diet, fitness, weight, reviews, settings] = await Promise.all([
       this.req("/rest/v1/tasks?select=*", { auth: true, headers: h }),
-      this.req("/rest/v1/study_records?select=*", { auth: true, headers: h }),
       this.req("/rest/v1/blocks?select=*", { auth: true, headers: h }),
       this.req("/rest/v1/diet_entries?select=*", { auth: true, headers: h }),
       this.req("/rest/v1/fitness_days?select=*", { auth: true, headers: h }),
@@ -1869,11 +1865,6 @@ class SupabaseAdapter {
       id: r.id, title: r.title || "", subjectId: r.subject_id || null, due: r.due || "",
       priority: r.priority || "normal", estMin: r.est_min || 0, done: !!r.done,
       doneAt: ts(r.done_at), createdAt: ts(r.created_at) || Date.now(), updatedAt: ts(r.updated_at) || Date.now(), deleted: !!r.deleted
-    }));
-    st.study = (study || []).map(r => ({
-      id: r.id, subjectId: r.subject_id || null, taskId: r.task_id || null, date: r.date,
-      startTime: r.start_time || "", minutes: r.minutes || 0, note: r.note || "",
-      createdAt: ts(r.created_at) || Date.now(), updatedAt: ts(r.updated_at) || Date.now(), deleted: !!r.deleted
     }));
     st.blocks = (blocks || []).map(r => ({
       id: r.id, title: r.title || "", type: r.type || "other", date: r.date,
@@ -2127,7 +2118,7 @@ const TodayView = {
 
     const t = pool[0];
     const tagText = t.due && dayDiff(ts, t.due) < 0 ? `逾期 ${-dayDiff(ts, t.due)} 天` : t.due === ts ? "今天到期" : PRIORITY_LABEL(t.priority);
-    const tagCls = t.due && dayDiff(ts, t.due) >= 0 ? "today" : "over";
+    const tagCls = !t.due ? "" : dayDiff(ts, t.due) < 0 ? "over" : "today";
     return UI.h("div", { class: "next-action" },
       UI.h("div", { class: "na-label" }, "下一步"),
       UI.h("div", { class: "na-body" },
@@ -2172,7 +2163,7 @@ const TodayView = {
       );
     } else {
       const diff = dayDiff(todayStr(), s.examDate);
-      const start = new Date(s.examDate); start.setMonth(start.getMonth() - 4);
+      const start = parseDate(s.examDate); start.setMonth(start.getMonth() - 4);
       const total = Math.max(1, dayDiff(dstr(start), s.examDate));
       const pct = diff > 0 ? Math.min(100, Math.max(2, Math.round((total - diff) / total * 100))) : 100;
       cd = UI.h("div", { class: "card countdown" },
@@ -2499,7 +2490,7 @@ const TasksView = {
  * 用户自建每日事项 → 点开始计时 → 按天累计 → 当日饼图 + 每日统计 */
 "use strict";
 
-const ITEM_COLORS = ["var(--blue)", "var(--ink)", "var(--ink-2)", "var(--ink-3)", "#c9cbd0", "#dfe0e4", "#b4b7bd", "#9aa0a8"];
+const ITEM_COLORS = ["var(--blue)", "var(--violet)", "var(--coral)", "var(--green)", "var(--amber)", "var(--ink-2)", "var(--ink-3)", "#c9cbd0"];
 
 const StudyView = {
   render() {
@@ -3566,9 +3557,11 @@ const SettingsView = {
       const raw = JSON.parse(localStorage.getItem(DB_V1_BACKUP_KEY) || "null");
       if (!raw) { UI.toast("没有找到 v1 备份"); return; }
       const v1 = migrateV1(raw);
-      // 以 v1 数据为主，保留 v2 新增集合中不冲突的记录
+      // 以 v1 数据为主，保留 v2 学习事项中不冲突的记录（v2 的 study 是对象结构）
       const keepIds = new Set(v1.tasks.map(t => t.id));
-      v1.study = Store.state.study.filter(r => !keepIds.has(r.taskId)).concat(v1.study);
+      v1.study.items = Store.state.study.items.filter(it => !keepIds.has(it.taskId)).concat(v1.study.items);
+      v1.study.days = Store.state.study.days || {};
+      v1.study.updatedAt = Date.now();
       v1.blocks = Store.state.blocks.filter(b => !v1.tasks.some(t => t.id === b.taskId));
       v1.quotes = Store.state.quotes;
       Store.state = v1;
@@ -3669,7 +3662,8 @@ const App = {
   moveNavPill() {
     const pill = document.getElementById("navPill");
     const active = document.querySelector(".nav-item.active");
-    if (!pill || !active) return;
+    if (!pill) return;
+    if (!active) { pill.style.opacity = "0"; return; }  // 设置页等无导航项时隐藏 pill
     const r = active.getBoundingClientRect();
     const nr = active.parentElement.getBoundingClientRect();
     pill.style.width = r.width + "px";

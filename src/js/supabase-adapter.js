@@ -167,9 +167,8 @@ class SupabaseAdapter {
   /* ---------- 数据：拉取 ---------- */
   async pull() {
     const h = {};
-    const [tasks, study, blocks, diet, fitness, weight, reviews, settings] = await Promise.all([
+    const [tasks, blocks, diet, fitness, weight, reviews, settings] = await Promise.all([
       this.req("/rest/v1/tasks?select=*", { auth: true, headers: h }),
-      this.req("/rest/v1/study_records?select=*", { auth: true, headers: h }),
       this.req("/rest/v1/blocks?select=*", { auth: true, headers: h }),
       this.req("/rest/v1/diet_entries?select=*", { auth: true, headers: h }),
       this.req("/rest/v1/fitness_days?select=*", { auth: true, headers: h }),
@@ -183,11 +182,6 @@ class SupabaseAdapter {
       id: r.id, title: r.title || "", subjectId: r.subject_id || null, due: r.due || "",
       priority: r.priority || "normal", estMin: r.est_min || 0, done: !!r.done,
       doneAt: ts(r.done_at), createdAt: ts(r.created_at) || Date.now(), updatedAt: ts(r.updated_at) || Date.now(), deleted: !!r.deleted
-    }));
-    st.study = (study || []).map(r => ({
-      id: r.id, subjectId: r.subject_id || null, taskId: r.task_id || null, date: r.date,
-      startTime: r.start_time || "", minutes: r.minutes || 0, note: r.note || "",
-      createdAt: ts(r.created_at) || Date.now(), updatedAt: ts(r.updated_at) || Date.now(), deleted: !!r.deleted
     }));
     st.blocks = (blocks || []).map(r => ({
       id: r.id, title: r.title || "", type: r.type || "other", date: r.date,

@@ -13,12 +13,12 @@ const JS_FILES = [
   "src/js/ui.js",
   "src/js/charts.js",
   "src/js/sync.js",
+  "src/js/supabase-adapter.js",
   "src/js/timer.js",
   "src/js/views/today.js",
   "src/js/views/tasks.js",
   "src/js/views/study.js",
   "src/js/views/fitness.js",
-  "src/js/views/schedule.js",
   "src/js/views/review.js",
   "src/js/views/settings.js",
   "src/js/app.js"

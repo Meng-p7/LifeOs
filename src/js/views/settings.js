@@ -316,9 +316,11 @@ const SettingsView = {
       const raw = JSON.parse(localStorage.getItem(DB_V1_BACKUP_KEY) || "null");
       if (!raw) { UI.toast("没有找到 v1 备份"); return; }
       const v1 = migrateV1(raw);
-      // 以 v1 数据为主，保留 v2 新增集合中不冲突的记录
+      // 以 v1 数据为主，保留 v2 学习事项中不冲突的记录（v2 的 study 是对象结构）
       const keepIds = new Set(v1.tasks.map(t => t.id));
-      v1.study = Store.state.study.filter(r => !keepIds.has(r.taskId)).concat(v1.study);
+      v1.study.items = Store.state.study.items.filter(it => !keepIds.has(it.taskId)).concat(v1.study.items);
+      v1.study.days = Store.state.study.days || {};
+      v1.study.updatedAt = Date.now();
       v1.blocks = Store.state.blocks.filter(b => !v1.tasks.some(t => t.id === b.taskId));
       v1.quotes = Store.state.quotes;
       Store.state = v1;

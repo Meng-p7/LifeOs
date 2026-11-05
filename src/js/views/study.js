@@ -2,7 +2,7 @@
  * 用户自建每日事项 → 点开始计时 → 按天累计 → 当日饼图 + 每日统计 */
 "use strict";
 
-const ITEM_COLORS = ["var(--blue)", "var(--ink)", "var(--ink-2)", "var(--ink-3)", "#c9cbd0", "#dfe0e4", "#b4b7bd", "#9aa0a8"];
+const ITEM_COLORS = ["var(--blue)", "var(--violet)", "var(--coral)", "var(--green)", "var(--amber)", "var(--ink-2)", "var(--ink-3)", "#c9cbd0"];
 
 const StudyView = {
   render() {

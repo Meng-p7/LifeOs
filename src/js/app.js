@@ -70,7 +70,8 @@ const App = {
   moveNavPill() {
     const pill = document.getElementById("navPill");
     const active = document.querySelector(".nav-item.active");
-    if (!pill || !active) return;
+    if (!pill) return;
+    if (!active) { pill.style.opacity = "0"; return; }  // 设置页等无导航项时隐藏 pill
     const r = active.getBoundingClientRect();
     const nr = active.parentElement.getBoundingClientRect();
     pill.style.width = r.width + "px";

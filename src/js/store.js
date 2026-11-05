@@ -86,7 +86,6 @@ function migrateV1(raw) {
     merged.settings.training = { ...d.settings.training, ...(raw.settings && raw.settings.training || {}) };
     if (!Array.isArray(merged.settings.subjects)) merged.settings.subjects = [];
     merged.tasks = Array.isArray(raw.tasks) ? raw.tasks : [];
-    merged.study = Array.isArray(raw.study) ? raw.study : [];
     merged.blocks = Array.isArray(raw.blocks) ? raw.blocks : [];
     ["fitness", "weight", "diet", "reviews", "quotes"].forEach(k => {
       if (!merged[k] || typeof merged[k] !== "object") merged[k] = d[k];
